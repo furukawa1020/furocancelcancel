@@ -1,10 +1,18 @@
 import React, { useEffect } from 'react';
-import { useAudioContext } from '../components/useAudioContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const Landing = () => {
-    // In a real flow, this view might just be a "Loading" state or the "Trigger" waiting state.
-    // But per requirements, the "Start" is the NFC trigger which opens the URL.
-    // So when the user visits the URL, it MIGHT be the "already started" state.
+    useEffect(() => {
+        // --- 1. Identity Initialization ---
+        let deviceId = localStorage.getItem('device_id');
+        if (!deviceId) {
+            deviceId = uuidv4();
+            localStorage.setItem('device_id', deviceId);
+            console.log("New Identity Created:", deviceId);
+        } else {
+            console.log("Identity Found:", deviceId);
+        }
+    }, []);
 
     return (
         <div className="h-screen w-screen bg-[#0B0F19] flex flex-col items-center justify-center text-[#F0F4F8] font-serif">
@@ -16,7 +24,6 @@ const Landing = () => {
                     3分だけ、終わらせましょう。
                 </p>
             </div>
-
             {/* Implicit "Touch to Start" overlay if needed for Audio */}
             <div className="absolute inset-0 z-50 opacity-0 cursor-pointer" />
         </div>
