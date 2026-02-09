@@ -3,6 +3,9 @@ import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar } from 'react-
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import axios from 'axios';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 import { useNativeAudio } from '../hooks/useNativeAudio';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 
@@ -15,7 +18,7 @@ interface Step {
     time: number;
     text: string;
 }
-type ViewState = 'landing' | 'active' | 'done';
+type ViewState = 'landing' | 'active' | 'done' | 'onboarding';
 
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
@@ -25,6 +28,7 @@ export default function HomeScreen() {
     const [recipe, setRecipe] = useState<Step[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [newTau, setNewTau] = useState<number | null>(null);
+    const [deviceId, setDeviceId] = useState<string | null>(null);
 
     // Animation Values
     const breatheOpacity = useSharedValue(0.5);
@@ -35,7 +39,22 @@ export default function HomeScreen() {
             -1,
             true
         );
+
+        // Init Identity
+        initIdentity();
     }, []);
+
+    const initIdentity = async () => {
+        let id = await SecureStore.getItemAsync('device_id');
+        if (!id) {
+            id = uuidv4();
+            await SecureStore.setItemAsync('device_id', id);
+            // New User -> Could trigger Onboarding here
+            // For now, we just store it.
+        }
+        setDeviceId(id);
+        console.log("Identity:", id);
+    };
 
     const breatheStyle = useAnimatedStyle(() => {
         return {
@@ -51,7 +70,11 @@ export default function HomeScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             playKewpie();
 
-            const res = await axios.post(`${API_BASE}/sessions`, { source: 'mobile_nfc' });
+            const res = await axios.post(`${API_BASE}/sessions`, {
+                source: 'mobile_nfc',
+                device_id: deviceId
+            });
+
             setSessionId(res.data.id);
             const tau = res.data.tau_limit || 180;
             setTotalTime(tau);
@@ -59,14 +82,11 @@ export default function HomeScreen() {
 
             // Get Recipe
             if (res.data.recipe_title) {
-                // Backend sends title, but we might need full steps if not included in create response.
-                // Let's poll or fetch details.
                 const detail = await axios.get(`${API_BASE}/sessions/${res.data.id}`);
                 if (detail.data.recipe) {
                     setRecipe(JSON.parse(detail.data.recipe.steps_json));
                 }
             } else {
-                // Fallback fetch
                 const detail = await axios.get(`${API_BASE}/sessions/${res.data.id}`);
                 if (detail.data.recipe) {
                     setRecipe(JSON.parse(detail.data.recipe.steps_json));
@@ -100,8 +120,6 @@ export default function HomeScreen() {
             Haptics.selectionAsync();
             const res = await axios.post(`${API_BASE}/sessions/${sessionId}/feedback`, { rating });
             setNewTau(res.data.new_tau);
-            // Stay on Done screen but show stats? Or reset?
-            // Let's reset after a delay or show a "Resting" state.
         } catch (e) {
             console.error("Feedback error", e);
         }
@@ -115,8 +133,7 @@ export default function HomeScreen() {
                 setTimeLeft((prev) => {
                     if (prev !== null && prev <= 0) {
                         clearInterval(interval);
-                        finishSession(); // Auto-finish or wait for user? Intentless says "Wait for towel", but timer ending is a signal.
-                        // Let's keep it manual trigger for towel proof, but stop timer.
+                        finishSession();
                         return 0;
                     }
                     return (prev || 0) - 1;
@@ -142,7 +159,6 @@ export default function HomeScreen() {
                     <Text style={styles.label}>INTENTLESS BATH</Text>
                     <Pressable onPress={startSession} style={styles.startButton}>
                         <Text style={styles.startText}>TAP TOWEL</Text>
-                        {/* In reality, this is NCF Trigger. Start button for sim. */}
                     </Pressable>
                 </Animated.View>
             </View>
@@ -159,7 +175,6 @@ export default function HomeScreen() {
 
                 <View style={styles.recipeContainer}>
                     {recipe.map((step, idx) => {
-                        // Simple highlighting logic
                         const isActive = (timeLeft !== null) && (totalTime - timeLeft >= step.time) && (idx === recipe.length - 1 || totalTime - timeLeft < recipe[idx + 1].time);
 
                         return (
@@ -171,7 +186,6 @@ export default function HomeScreen() {
                     })}
                 </View>
 
-                {/* Simulating Towel Tap to Finish */}
                 <Pressable onPress={finishSession} style={styles.hiddenButton}>
                     <Text style={styles.hiddenText}>(Towel Tap)</Text>
                 </Pressable>
