@@ -8,6 +8,7 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { useNativeAudio } from '../hooks/useNativeAudio';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
+import OnboardingScreen from './OnboardingScreen'; // New Import
 
 const API_BASE = 'http://192.168.68.58:3000'; // Local IP
 
@@ -22,6 +23,8 @@ type ViewState = 'landing' | 'active' | 'done' | 'onboarding';
 
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
+    const { scanTag, nfcState, resetNfc } = useNfc(); // Added
+
     const [viewState, setViewState] = useState<ViewState>('landing');
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [totalTime, setTotalTime] = useState(180);
@@ -32,6 +35,7 @@ export default function HomeScreen() {
 
     // Animation Values
     const breatheOpacity = useSharedValue(0.5);
+    const scale = useSharedValue(1); // Added
 
     useEffect(() => {
         breatheOpacity.value = withRepeat(
@@ -43,6 +47,25 @@ export default function HomeScreen() {
         // Init Identity
         initIdentity();
     }, []);
+
+    // Monitor NFC State
+    useEffect(() => {
+        if (nfcState === 'success') {
+            // Tag Detected!
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (viewState === 'landing') {
+                startSession();
+            } else if (viewState === 'active') {
+                finishSession();
+            }
+            resetNfc();
+        } else if (nfcState === 'scanning') {
+            // Pulse animation faster?
+            scale.value = withRepeat(withTiming(1.1, { duration: 500 }), -1, true);
+        } else {
+            scale.value = withTiming(1);
+        }
+    }, [nfcState]);
 
     const initIdentity = async () => {
         let id = await SecureStore.getItemAsync('device_id');
@@ -59,11 +82,18 @@ export default function HomeScreen() {
     const breatheStyle = useAnimatedStyle(() => {
         return {
             opacity: breatheOpacity.value,
-            transform: [{ scale: 1 + (breatheOpacity.value - 0.5) * 0.1 }],
+            transform: [{ scale: scale.value + (breatheOpacity.value - 0.5) * 0.1 }],
         };
     });
 
     // --- ACTIONS ---
+
+    const handleTap = () => {
+        // Trigger NFC Scan
+        scanTag();
+        // Fallback for Simulator (Long Press could be added, but for now just direct)
+        // startSession(); // UNCOMMENT FOR SIMULATOR ONLY if NFC fails
+    };
 
     const startSession = async () => {
         try {
@@ -151,14 +181,18 @@ export default function HomeScreen() {
         return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
+    if (viewState === 'onboarding') {
+        return <OnboardingScreen onComplete={() => setViewState('landing')} />;
+    }
+
     if (viewState === 'landing') {
         return (
             <View style={styles.container}>
                 <StatusBar barStyle="light-content" />
                 <Animated.View style={[styles.centerContent, breatheStyle]}>
                     <Text style={styles.label}>INTENTLESS BATH</Text>
-                    <Pressable onPress={startSession} style={styles.startButton}>
-                        <Text style={styles.startText}>TAP TOWEL</Text>
+                    <Pressable onPress={handleTap} style={styles.startButton}>
+                        <Text style={styles.startText}>{nfcState === 'scanning' ? 'SCANNING...' : 'TAP TOWEL'}</Text>
                     </Pressable>
                 </Animated.View>
             </View>
@@ -186,8 +220,8 @@ export default function HomeScreen() {
                     })}
                 </View>
 
-                <Pressable onPress={finishSession} style={styles.hiddenButton}>
-                    <Text style={styles.hiddenText}>(Towel Tap)</Text>
+                <Pressable onPress={handleTap} style={styles.hiddenButton}>
+                    <Text style={styles.hiddenText}>{nfcState === 'scanning' ? 'Scanning...' : '(Towel Tap)'}</Text>
                 </Pressable>
             </View>
         );

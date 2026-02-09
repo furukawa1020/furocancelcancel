@@ -1,72 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, StatusBar } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, ZoomIn, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
+import { useNativeAudio } from '../hooks/useNativeAudio';
 
 export default function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
-    const [step, setStep] = useState(0);
+    const { playKewpie, playHotaru } = useNativeAudio();
+    const [step, setStep] = useState<'intro' | 'demo_active' | 'demo_done' | 'final'>('intro');
+    const [demoTime, setDemoTime] = useState(180);
 
-    const nextStep = () => {
-        Haptics.selectionAsync();
-        if (step < 2) {
-            setStep(step + 1);
-        } else {
+    // Animation for Timer
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (step === 'demo_active') {
+            playKewpie();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            onComplete();
-        }
-    };
 
-    const renderContent = () => {
-        switch (step) {
-            case 0:
-                return (
-                    <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.content}>
-                        <Text style={styles.title}>Welcome.</Text>
-                        <Text style={styles.text}>
-                            This is not a timer.{'\n'}
-                            It is a mechanism to end your day.
-                        </Text>
-                    </Animated.View>
-                );
-            case 1:
-                return (
-                    <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.content}>
-                        <Text style={styles.title}>The Switch.</Text>
-                        <Text style={styles.text}>
-                            Your towel is the trigger.{'\n\n'}
-                            Tap it to start.{'\n'}
-                            Tap it to finish.
-                        </Text>
-                        <View style={styles.demoBox}>
-                            <Text style={styles.demoText}>[ NFC TAG ]</Text>
-                        </View>
-                    </Animated.View>
-                );
-            case 2:
-                return (
-                    <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.content}>
-                        <Text style={styles.title}>Let go.</Text>
-                        <Text style={styles.text}>
-                            The system decides the time.{'\n'}
-                            You just follow.{'\n\n'}
-                            Ready to rest?
-                        </Text>
-                    </Animated.View>
-                );
-            default:
-                return null;
+            // Super Fast Countdown: 180s in 3 seconds
+            // 60s per second = 1s per 16ms
+            interval = setInterval(() => {
+                setDemoTime(prev => {
+                    const next = prev - 4; // Speed divider
+                    if (next <= 0) {
+                        clearInterval(interval);
+                        setStep('demo_done');
+                        return 0;
+                    }
+                    return next;
+                });
+            }, 16);
         }
+        return () => clearInterval(interval);
+    }, [step]);
+
+    useEffect(() => {
+        if (step === 'demo_done') {
+            playHotaru();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setTimeout(() => {
+                setStep('final');
+            }, 4000);
+        }
+    }, [step]);
+
+
+    const formatTime = (s: number) => {
+        const min = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            {renderContent()}
 
-            <Pressable onPress={nextStep} style={styles.button}>
-                <Text style={styles.btnText}>{step === 2 ? "BEGIN RITUAL" : "NEXT"}</Text>
-            </Pressable>
+            {step === 'intro' && (
+                <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.center}>
+                    <Text style={styles.label}>DEMO MODE</Text>
+                    <Text style={styles.title}>Tap the Towel.</Text>
+                    <Pressable onPress={() => setStep('demo_active')} style={styles.btnCircle}>
+                        <Text style={styles.btnText}>TAP</Text>
+                    </Pressable>
+                </Animated.View>
+            )}
+
+            {step === 'demo_active' && (
+                <Animated.View entering={ZoomIn} style={styles.center}>
+                    <Text style={styles.timer}>{formatTime(demoTime)}</Text>
+                    <Text style={styles.subtext}>Intentless System Taking Over...</Text>
+                </Animated.View>
+            )}
+
+            {step === 'demo_done' && (
+                <Animated.View entering={FadeIn} style={styles.center}>
+                    <Text style={styles.doneTitle}>Rest.</Text>
+                </Animated.View>
+            )}
+
+            {step === 'final' && (
+                <Animated.View entering={FadeIn} style={styles.center}>
+                    <Text style={styles.title}>That was 3 minutes.</Text>
+                    <Text style={styles.text}>The system handles the time.</Text>
+                    <Pressable onPress={() => { Haptics.selectionAsync(); onComplete(); }} style={styles.btnMain}>
+                        <Text style={styles.btnMainText}>START REALITY</Text>
+                    </Pressable>
+                </Animated.View>
+            )}
+
         </View>
     );
 }
@@ -77,49 +99,65 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.bgDeep,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: SPACING.lg,
     },
-    content: {
+    center: {
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 60,
+    },
+    label: {
+        color: COLORS.accentIndigo,
+        fontSize: 12,
+        letterSpacing: 4,
+        marginBottom: 20
     },
     title: {
-        fontSize: 32,
         color: COLORS.textMain,
+        fontSize: 32,
         fontWeight: 'bold',
-        marginBottom: 20,
-        fontFamily: FONTS.serif,
+        marginBottom: 40,
     },
     text: {
         color: COLORS.textDim,
-        fontSize: 18,
-        textAlign: 'center',
-        lineHeight: 28,
+        fontSize: 16,
+        marginBottom: 40,
     },
-    demoBox: {
-        marginTop: 30,
+    btnCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
         borderWidth: 1,
-        borderColor: COLORS.accentIndigo,
-        padding: 20,
-        borderRadius: 8,
-        opacity: 0.5
-    },
-    demoText: {
-        color: COLORS.accentIndigo,
-        fontSize: 12,
-        letterSpacing: 2
-    },
-    button: {
-        position: 'absolute',
-        bottom: 60,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.textMain,
-        paddingBottom: 5,
+        borderColor: COLORS.textMain,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)'
     },
     btnText: {
         color: COLORS.textMain,
-        fontSize: 16,
-        letterSpacing: 2,
+        fontSize: 18,
+        letterSpacing: 2
     },
+    timer: {
+        fontSize: 80,
+        color: COLORS.textMain,
+        fontVariant: ['tabular-nums'],
+        fontWeight: 'bold',
+    },
+    subtext: {
+        color: COLORS.accentIndigo,
+        marginTop: 20,
+    },
+    doneTitle: {
+        fontSize: 60,
+        color: COLORS.textMain,
+    },
+    btnMain: {
+        paddingVertical: 15,
+        paddingHorizontal: 40,
+        backgroundColor: COLORS.accentIndigo,
+        borderRadius: 30,
+    },
+    btnMainText: {
+        color: COLORS.textMain,
+        fontWeight: 'bold',
+        fontSize: 16
+    }
 });
