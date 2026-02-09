@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend-node
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend-node/database.sqlite:/app/database.sqlite
+    environment:
+      - PORT=3000
+  # Frontend would typically be built to static files, 
+  # but for dev composition we can run it or serve dist.
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:5173"

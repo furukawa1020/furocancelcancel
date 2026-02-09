@@ -1,27 +1,126 @@
 :root {
-  --color-bg: #0B0F19;
-  --color-text: #F0F4F8;
-  --color-accent: #4F46E5;
-  --color-alert: #EF4444;
-  --font-serif: "Zen Old Mincho", serif;
+  /* Midnight Ritual Palette */
+  --bg-deep: #050511;
+  /* Deeper than before */
+  --bg-card: #0F1221;
+  --text-main: #E2E8F0;
+  --text-dim: #94A3B8;
+  --accent-indigo: #6366F1;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  --error-red: #F43F5E;
+
+  /* Typography */
+  --font-serif: "Zen Old Mincho", "Times New Roman", serif;
   --font-mono: "Roboto Mono", monospace;
+
+  /* Spacing */
+  --space-unit: 8px;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: var(--bg-deep);
+  color: var(--text-main);
   font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden; /* Prevent scroll */
+  overflow: hidden;
+  /* App-like feel */
+}
+
+/* --- ANIMATIONS --- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes breathe {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
 .animate-fade-in {
-  animation: fadeIn 2s ease-in-out;
+  animation: fadeIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.animate-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* --- UTILITIES --- */
+
+.glass-panel {
+  background: rgba(15, 18, 33, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+
+.timer-font {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em;
+}
+
+/* Custom Scrollbar for Recipe List if needed */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
 }
