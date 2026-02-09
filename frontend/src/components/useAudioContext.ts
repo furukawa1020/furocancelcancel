@@ -4,6 +4,7 @@ type AudioState = 'idle' | 'kewpie' | 'hotaru';
 
 export const useAudioContext = () => {
     const [currentState, setCurrentState] = useState<AudioState>('idle');
+    const [isLocked, setIsLocked] = useState(true);
     const kewpieRef = useRef<HTMLAudioElement | null>(null);
     const hotaruRef = useRef<HTMLAudioElement | null>(null);
 
@@ -13,9 +14,29 @@ export const useAudioContext = () => {
         hotaruRef.current = new Audio('/hotaru.mp3');
         hotaruRef.current.loop = false;
 
+        // specialized unlock listener
+        const unlock = () => {
+            // We attempt to play and immediately pause to unlock the AudioContext
+            kewpieRef.current?.play().then(() => {
+                kewpieRef.current?.pause();
+                kewpieRef.current!.currentTime = 0;
+                setIsLocked(false);
+                // Remove listeners once unlocked
+                document.removeEventListener('click', unlock);
+                document.removeEventListener('touchstart', unlock);
+            }).catch((e) => {
+                console.warn("Unlock attempt failed", e);
+            });
+        };
+
+        document.addEventListener('click', unlock);
+        document.addEventListener('touchstart', unlock);
+
         return () => {
             kewpieRef.current?.pause();
             hotaruRef.current?.pause();
+            document.removeEventListener('click', unlock);
+            document.removeEventListener('touchstart', unlock);
         };
     }, []);
 
@@ -27,8 +48,10 @@ export const useAudioContext = () => {
 
             await kewpieRef.current.play();
             setCurrentState('kewpie');
+            setIsLocked(false); // If successful, we are unlocked
         } catch (e) {
             console.warn("Autoplay blocked for Kewpie", e);
+            setIsLocked(true); // Still locked
         }
     };
 
@@ -40,8 +63,10 @@ export const useAudioContext = () => {
 
             await hotaruRef.current.play();
             setCurrentState('hotaru');
+            setIsLocked(false);
         } catch (e) {
             console.warn("Autoplay blocked for Hotaru", e);
+            setIsLocked(true);
         }
     };
 
@@ -51,5 +76,5 @@ export const useAudioContext = () => {
         setCurrentState('idle');
     };
 
-    return { playKewpie, playHotaru, stopAll, currentState };
+    return { playKewpie, playHotaru, stopAll, currentState, isLocked };
 };
