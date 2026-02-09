@@ -30,7 +30,11 @@ const ActiveSession = () => {
         const startSession = async () => {
             try {
                 const isNfc = window.location.pathname.includes('/nfc');
-                const res = await axios.post(`${API_BASE}/sessions`, { source: isNfc ? 'nfc' : 'web' });
+                const deviceId = localStorage.getItem('device_id');
+                const res = await axios.post(`${API_BASE}/sessions`, {
+                    source: isNfc ? 'nfc' : 'web',
+                    device_id: deviceId
+                });
 
                 const sid = res.data.id;
                 setSessionId(sid);
