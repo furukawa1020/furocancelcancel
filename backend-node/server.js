@@ -1,124 +1,26 @@
 const express = require('express');
 const cors = require('cors');
-const { Sequelize, DataTypes } = require('sequelize');
+const { sequelize, Recipe } = require('./src/models');
+const apiRoutes = require('./src/routes/api');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database Setup (SQLite)
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './database.sqlite',
-    logging: false
-});
-
-// --- MODELS ---
-
-const User = sequelize.define('User', {
-    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-    device_id: { type: DataTypes.STRING, unique: true } // Identify by Installation/Device initially
-});
-
-const Session = sequelize.define('Session', {
-    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-    proof_state: { type: DataTypes.STRING, defaultValue: 'none' }, // none, started, done
-    started_at: DataTypes.DATE,
-    finished_at: DataTypes.DATE,
-    recipe_id: DataTypes.INTEGER,
-    tau_limit: DataTypes.INTEGER, // The Calculated Limit for this session
-    feedback: DataTypes.STRING, // ok / bad
-    UserId: DataTypes.UUID // Foreign Key
-});
-
-const BanditStat = sequelize.define('BanditStat', {
-    tau_mu: { type: DataTypes.FLOAT, defaultValue: 180.0 }, // Mean endurance time (starts at 3 min)
-    tau_sigma: { type: DataTypes.FLOAT, defaultValue: 20.0 }, // Variance
-    alpha: { type: DataTypes.FLOAT, defaultValue: 0.1 }, // Learning rate
-    UserId: DataTypes.UUID // Foreign Key
-});
-
-const Recipe = sequelize.define('Recipe', {
-    title: DataTypes.STRING,
-    steps_json: DataTypes.JSON,
-    base_duration_sec: DataTypes.INTEGER,
-    tier: DataTypes.STRING // '3min', '2min', '1min'
-});
-
-// Associations
-User.hasMany(Session);
-Session.belongsTo(User);
-
-User.hasOne(BanditStat);
-BanditStat.belongsTo(User);
-
-// --- LOGIC: Intentless Engine ---
-
-async function getOrCreateUser(deviceId) {
-    if (!deviceId) return null; // Or handle anonymous
-    let user = await User.findOne({ where: { device_id: deviceId } });
-    if (!user) {
-        user = await User.create({ device_id: deviceId });
-        // Init Bandit for new user
-        await BanditStat.create({ UserId: user.id });
-    }
-    return user;
-}
-
-// Get current Tau estimate for User
-async function getTau(userId) {
-    let stat = await BanditStat.findOne({ where: { UserId: userId } });
-    if (!stat) {
-        // Should have been created, but safe fallback
-        stat = await BanditStat.create({ UserId: userId });
-        console.warn(`[Bandit] Created missing stat for User ${userId}`);
-    }
-    return stat;
-}
-
-// Select Recipe based on Tau
-async function selectRecipe(tau) {
-    let tier = '3min';
-    if (tau < 90) tier = '1min';
-    else if (tau < 150) tier = '2min';
-
-    // Find recipe for this tier
-    let recipe = await Recipe.findOne({ where: { tier } });
-
-    // Fallback to default if not found
-    if (!recipe) recipe = await Recipe.findOne({ where: { tier: '3min' } });
-
-    return recipe;
-}
-
-// Update Tau based on feedback
-async function updateTau(userId, isOk, sessionDuration) {
-    const stat = await getTau(userId);
-    const currentTau = stat.tau_mu;
-
-    let newTau = currentTau;
-
-    if (isOk) {
-        // If OK, slight nudge up? Or keep stable?
-        // Let's increment slightly to test limits gently
-        newTau = currentTau + 5;
-    } else {
-        // If BAD, heavy penalty
-        newTau = currentTau - 15;
-    }
-
-    // Clamp values (Minimum 45s, Max 300s)
-    newTau = Math.max(45, Math.min(300, newTau));
-
-    stat.tau_mu = newTau;
-    await stat.save();
-    return newTau;
-}
+// --- ROUTES ---
+app.use('/', apiRoutes);
 
 // --- INIT ---
 const initData = async () => {
-    // ALTER: TRUE allows adding columns without dropping tables
-    await sequelize.sync({ alter: true });
+    // SQLite Workaround for Alter Table with Foreign Keys
+    try {
+        await sequelize.query('PRAGMA foreign_keys = OFF;');
+        await sequelize.sync({ alter: true });
+        await sequelize.query('PRAGMA foreign_keys = ON;');
+    } catch (e) {
+        console.warn("Sync warning:", e.message);
+        // Fallback: If structure changed too much, might need manual migration or force
+    }
 
     const count = await Recipe.count();
     if (count === 0) {
@@ -164,108 +66,8 @@ const initData = async () => {
     console.log("Database initialized with Intentless Engine & Dynamic Recipes.");
 };
 
-// --- ROUTES ---
-
-// 1. NFC Trigger / Web Start -> Creates Session with Optimized Tau
-app.post('/sessions', async (req, res) => {
-    try {
-        const { source, device_id } = req.body;
-
-        // Ensure User
-        // Use a default ID for 'source=test_script' if no device_id to keep verification working casually
-        const effDeviceId = device_id || (source === 'mobile_nfc' ? 'unknown_mobile' : 'default_test_user');
-
-        const user = await getOrCreateUser(effDeviceId);
-
-        const stat = await getTau(user.id);
-        const tau = Math.floor(stat.tau_mu);
-
-        // Select Recipe based on Tau
-        const recipe = await selectRecipe(tau);
-
-        const session = await Session.create({
-            proof_state: 'started',
-            started_at: new Date(),
-            recipe_id: recipe.id,
-            tau_limit: tau,
-            UserId: user.id
-        });
-
-        res.json({ ...session.toJSON(), recipe_title: recipe.title });
-    } catch (e) {
-        console.error(e);
-        res.status(500).send("Error creating session");
-    }
-});
-
-// 2. Poll Session
-app.get('/sessions/:id', async (req, res) => {
-    const session = await Session.findByPk(req.params.id);
-    if (!session) return res.status(404).json({ error: "Not found" });
-
-    // Calculate remaining based on TAU LIMIT
-    const now = new Date();
-    const elapsed = (now - new Date(session.started_at)) / 1000;
-    const remaining = Math.max(0, session.tau_limit - elapsed);
-
-    const recipe = await Recipe.findByPk(session.recipe_id);
-
-    res.json({
-        ...session.toJSON(),
-        remaining_sec: remaining,
-        recipe: recipe
-    });
-});
-
-// 3. Mark Done (NFC Towel)
-app.get('/p/nfc/done', async (req, res) => {
-    const sid = req.query.sid;
-    let session;
-    if (sid) {
-        session = await Session.findByPk(sid);
-    } else {
-        session = await Session.findOne({
-            order: [['createdAt', 'DESC']],
-            where: { proof_state: 'started' }
-        });
-    }
-
-    if (session) {
-        session.proof_state = 'done';
-        session.finished_at = new Date();
-        await session.save();
-        res.send("<h1>Target Acquired. Rest.</h1>");
-    } else {
-        res.status(404).send("No active session found.");
-    }
-});
-
-// 4. Feedback -> Update Bandit
-app.post('/sessions/:id/feedback', async (req, res) => {
-    const session = await Session.findByPk(req.params.id);
-    if (!session) return res.status(404).json({ error: "Not found" });
-
-    const { rating } = req.body; // 'ok' or 'bad'
-    session.feedback = rating;
-    if (!session.finished_at) session.finished_at = new Date();
-    await session.save();
-
-    // BANDIT UPDATE for this USER
-    const duration = (new Date(session.finished_at) - new Date(session.started_at)) / 1000;
-    const newTau = await updateTau(session.UserId, rating === 'ok', duration);
-
-    console.log(`[Bandit] User: ${session.UserId} | Feedback: ${rating}. New Tau: ${newTau}`);
-    res.json({ status: "accepted", new_tau: newTau });
-});
-
-// 5. ESP32 Mock Endpoint
-app.post('/device/event', async (req, res) => {
-    console.log("Device Event:", req.body);
-    res.json({ status: "received" });
-});
-
 const PORT = 3000;
 app.listen(PORT, async () => {
-    console.log(`Intentless Backend running on port ${PORT}`);
+    console.log(`Intentless Backend (Modular) running on port ${PORT}`);
     await initData();
 });
