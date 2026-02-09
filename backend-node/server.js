@@ -34,7 +34,8 @@ const BanditStat = sequelize.define('BanditStat', {
 const Recipe = sequelize.define('Recipe', {
     title: DataTypes.STRING,
     steps_json: DataTypes.JSON,
-    base_duration_sec: DataTypes.INTEGER
+    base_duration_sec: DataTypes.INTEGER,
+    tier: DataTypes.STRING // '3min', '2min', '1min'
 });
 
 // --- LOGIC: Intentless Engine ---
@@ -46,28 +47,39 @@ async function getTau() {
     return stat;
 }
 
+// Select Recipe based on Tau
+async function selectRecipe(tau) {
+    let tier = '3min';
+    if (tau < 90) tier = '1min';
+    else if (tau < 150) tier = '2min';
+
+    // Find recipe for this tier
+    let recipe = await Recipe.findOne({ where: { tier } });
+
+    // Fallback to default if not found
+    if (!recipe) recipe = await Recipe.findOne({ where: { tier: '3min' } });
+
+    return recipe;
+}
+
 // Update Tau based on feedback
 async function updateTau(isOk, sessionDuration) {
     const stat = await getTau();
     const currentTau = stat.tau_mu;
-    const alpha = stat.alpha;
 
     let newTau = currentTau;
 
     if (isOk) {
-        // If OK, we confirm the current time was acceptable.
-        // We might nudge it slightly if we wanted to find the UPPER limit,
-        // but for "Intentless", finding a comfortable minimum is safer for retention.
-        // So we keep it or very slightly increase.
-        // newTau = currentTau + 5; 
+        // If OK, slight nudge up? Or keep stable?
+        // Let's increment slightly to test limits gently
+        newTau = currentTau + 5;
     } else {
-        // If BAD, it was too long. Reduce Tau.
-        // Failure is expensive (user churn), so we penalize heavily.
+        // If BAD, heavy penalty
         newTau = currentTau - 15;
     }
 
-    // Clamp values (Minimum 60s, Max 300s)
-    newTau = Math.max(60, Math.min(300, newTau));
+    // Clamp values (Minimum 45s, Max 300s)
+    newTau = Math.max(45, Math.min(300, newTau));
 
     stat.tau_mu = newTau;
     await stat.save();
@@ -80,18 +92,46 @@ const initData = async () => {
 
     const count = await Recipe.count();
     if (count === 0) {
+        // Tier 3: Standard (180s)
         await Recipe.create({
             title: "Standard Intentless",
             base_duration_sec: 180,
+            tier: '3min',
             steps_json: JSON.stringify([
                 { time: 0, text: "シャワーON (Shower ON)" },
-                { time: 10, text: "重要部位のみ (Critical Areas Only)" },
+                { time: 10, text: "重要部位のみ (Critical Areas)" },
                 { time: 130, text: "すすぐ (Rinse)" },
                 { time: 150, text: "タオルへ (To Towel)" }
             ])
         });
+
+        // Tier 2: Survival (120s)
+        await Recipe.create({
+            title: "Survival Mode",
+            base_duration_sec: 120,
+            tier: '2min',
+            steps_json: JSON.stringify([
+                { time: 0, text: "シャワーON" },
+                { time: 10, text: "脇・股・足だけ (Armpits/Feet)" },
+                { time: 90, text: "即すすぐ (Quick Rinse)" },
+                { time: 100, text: "脱出 (Escape)" }
+            ])
+        });
+
+        // Tier 1: Reset (60s)
+        await Recipe.create({
+            title: "Absolute Minimum",
+            base_duration_sec: 60,
+            tier: '1min',
+            steps_json: JSON.stringify([
+                { time: 0, text: "お湯を浴びる (Just Water)" },
+                { time: 30, text: "深呼吸 (Breathe)" },
+                { time: 45, text: "出る (Exit)" },
+                { time: 50, text: "タオル (Towel)" }
+            ])
+        });
     }
-    console.log("Database initialized with Intentless Engine.");
+    console.log("Database initialized with Intentless Engine & Dynamic Recipes.");
 };
 
 // --- ROUTES ---
@@ -102,14 +142,17 @@ app.post('/sessions', async (req, res) => {
         const stat = await getTau();
         const tau = Math.floor(stat.tau_mu);
 
+        // Select Recipe based on Tau
+        const recipe = await selectRecipe(tau);
+
         const session = await Session.create({
             proof_state: 'started',
             started_at: new Date(),
-            recipe_id: 1, // Default recipe for now
+            recipe_id: recipe.id,
             tau_limit: tau
         });
 
-        res.json(session);
+        res.json({ ...session.toJSON(), recipe_title: recipe.title });
     } catch (e) {
         console.error(e);
         res.status(500).send("Error creating session");
@@ -121,7 +164,7 @@ app.get('/sessions/:id', async (req, res) => {
     const session = await Session.findByPk(req.params.id);
     if (!session) return res.status(404).json({ error: "Not found" });
 
-    // Calculate remaining based on TAU LIMIT, not fixed 3 mins
+    // Calculate remaining based on TAU LIMIT
     const now = new Date();
     const elapsed = (now - new Date(session.started_at)) / 1000;
     const remaining = Math.max(0, session.tau_limit - elapsed);
@@ -138,7 +181,6 @@ app.get('/sessions/:id', async (req, res) => {
 // 3. Mark Done (NFC Towel)
 app.get('/p/nfc/done', async (req, res) => {
     const sid = req.query.sid;
-    // In demo, if no SID, maybe find latest active?
     let session;
     if (sid) {
         session = await Session.findByPk(sid);
@@ -166,13 +208,10 @@ app.post('/sessions/:id/feedback', async (req, res) => {
 
     const { rating } = req.body; // 'ok' or 'bad'
     session.feedback = rating;
-    await session.save(); // Save feedback FIRST
-
-    // BANDIT UPDATE
-    // Ensure finished_at exists (if manually triggered from UI before NFC)
     if (!session.finished_at) session.finished_at = new Date();
     await session.save();
 
+    // BANDIT UPDATE
     const duration = (new Date(session.finished_at) - new Date(session.started_at)) / 1000;
     const newTau = await updateTau(rating === 'ok', duration);
 
