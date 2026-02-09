@@ -15,6 +15,11 @@ const sequelize = new Sequelize({
 
 // --- MODELS ---
 
+const User = sequelize.define('User', {
+    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    device_id: { type: DataTypes.STRING, unique: true } // Identify by Installation/Device initially
+});
+
 const Session = sequelize.define('Session', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     proof_state: { type: DataTypes.STRING, defaultValue: 'none' }, // none, started, done
@@ -22,13 +27,15 @@ const Session = sequelize.define('Session', {
     finished_at: DataTypes.DATE,
     recipe_id: DataTypes.INTEGER,
     tau_limit: DataTypes.INTEGER, // The Calculated Limit for this session
-    feedback: DataTypes.STRING // ok / bad
+    feedback: DataTypes.STRING, // ok / bad
+    UserId: DataTypes.UUID // Foreign Key
 });
 
 const BanditStat = sequelize.define('BanditStat', {
     tau_mu: { type: DataTypes.FLOAT, defaultValue: 180.0 }, // Mean endurance time (starts at 3 min)
     tau_sigma: { type: DataTypes.FLOAT, defaultValue: 20.0 }, // Variance
-    alpha: { type: DataTypes.FLOAT, defaultValue: 0.1 } // Learning rate
+    alpha: { type: DataTypes.FLOAT, defaultValue: 0.1 }, // Learning rate
+    UserId: DataTypes.UUID // Foreign Key
 });
 
 const Recipe = sequelize.define('Recipe', {
@@ -38,12 +45,34 @@ const Recipe = sequelize.define('Recipe', {
     tier: DataTypes.STRING // '3min', '2min', '1min'
 });
 
+// Associations
+User.hasMany(Session);
+Session.belongsTo(User);
+
+User.hasOne(BanditStat);
+BanditStat.belongsTo(User);
+
 // --- LOGIC: Intentless Engine ---
 
-// Get current Tau estimate
-async function getTau() {
-    let stat = await BanditStat.findOne();
-    if (!stat) stat = await BanditStat.create({});
+async function getOrCreateUser(deviceId) {
+    if (!deviceId) return null; // Or handle anonymous
+    let user = await User.findOne({ where: { device_id: deviceId } });
+    if (!user) {
+        user = await User.create({ device_id: deviceId });
+        // Init Bandit for new user
+        await BanditStat.create({ UserId: user.id });
+    }
+    return user;
+}
+
+// Get current Tau estimate for User
+async function getTau(userId) {
+    let stat = await BanditStat.findOne({ where: { UserId: userId } });
+    if (!stat) {
+        // Should have been created, but safe fallback
+        stat = await BanditStat.create({ UserId: userId });
+        console.warn(`[Bandit] Created missing stat for User ${userId}`);
+    }
     return stat;
 }
 
@@ -63,8 +92,8 @@ async function selectRecipe(tau) {
 }
 
 // Update Tau based on feedback
-async function updateTau(isOk, sessionDuration) {
-    const stat = await getTau();
+async function updateTau(userId, isOk, sessionDuration) {
+    const stat = await getTau(userId);
     const currentTau = stat.tau_mu;
 
     let newTau = currentTau;
@@ -88,7 +117,8 @@ async function updateTau(isOk, sessionDuration) {
 
 // --- INIT ---
 const initData = async () => {
-    await sequelize.sync();
+    // ALTER: TRUE allows adding columns without dropping tables
+    await sequelize.sync({ alter: true });
 
     const count = await Recipe.count();
     if (count === 0) {
@@ -139,7 +169,15 @@ const initData = async () => {
 // 1. NFC Trigger / Web Start -> Creates Session with Optimized Tau
 app.post('/sessions', async (req, res) => {
     try {
-        const stat = await getTau();
+        const { source, device_id } = req.body;
+
+        // Ensure User
+        // Use a default ID for 'source=test_script' if no device_id to keep verification working casually
+        const effDeviceId = device_id || (source === 'mobile_nfc' ? 'unknown_mobile' : 'default_test_user');
+
+        const user = await getOrCreateUser(effDeviceId);
+
+        const stat = await getTau(user.id);
         const tau = Math.floor(stat.tau_mu);
 
         // Select Recipe based on Tau
@@ -149,7 +187,8 @@ app.post('/sessions', async (req, res) => {
             proof_state: 'started',
             started_at: new Date(),
             recipe_id: recipe.id,
-            tau_limit: tau
+            tau_limit: tau,
+            UserId: user.id
         });
 
         res.json({ ...session.toJSON(), recipe_title: recipe.title });
@@ -211,11 +250,11 @@ app.post('/sessions/:id/feedback', async (req, res) => {
     if (!session.finished_at) session.finished_at = new Date();
     await session.save();
 
-    // BANDIT UPDATE
+    // BANDIT UPDATE for this USER
     const duration = (new Date(session.finished_at) - new Date(session.started_at)) / 1000;
-    const newTau = await updateTau(rating === 'ok', duration);
+    const newTau = await updateTau(session.UserId, rating === 'ok', duration);
 
-    console.log(`[Bandit] Feedback: ${rating}. New Tau: ${newTau}`);
+    console.log(`[Bandit] User: ${session.UserId} | Feedback: ${rating}. New Tau: ${newTau}`);
     res.json({ status: "accepted", new_tau: newTau });
 });
 
