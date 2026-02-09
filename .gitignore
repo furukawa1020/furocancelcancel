@@ -16,12 +16,9 @@
 /pid/*
 !/pid/.keep
 
-# Ignore uploaded files in development.
-/storage/*
-!/storage/.keep
-
-# Ignore master key for decrypting credentials and more.
-/config/master.key
+# Node backend
+/backend-node/node_modules/
+/backend-node/*.sqlite
 
 # Ignore local environmental settings.
 /.env
