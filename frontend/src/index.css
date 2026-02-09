@@ -1,0 +1,27 @@
+:root {
+  --color-bg: #0B0F19;
+  --color-text: #F0F4F8;
+  --color-accent: #4F46E5;
+  --color-alert: #EF4444;
+  --font-serif: "Zen Old Mincho", serif;
+  --font-mono: "Roboto Mono", monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* Prevent scroll */
+}
+
+.animate-fade-in {
+  animation: fadeIn 2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
