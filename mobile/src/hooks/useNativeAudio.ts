@@ -21,16 +21,17 @@ export const useNativeAudio = () => {
                     playThroughEarpieceAndroid: false,
                 });
 
-                // Load sounds (Assuming assets are linked/copied later, for now using dummy or remote if needed, 
-                // but typically in Expo we `require` local assets. 
-                // I will assume assets will be placed in assets/sounds/ later. 
-                // For this step I will placeholder them or use the same logic as web if possible, 
-                // but Native requires bundled assets usually.)
-
-                // For MVP structure, I'll write the code assuming assets exist.
-                // CHECKPOINT: I need to Make sure assets exist. 
-                // I'll skip loading if files don't exist to prevent crash, 
-                // but for Real implementation we need the files.
+                // Load sounds
+                const { sound: k } = await Audio.Sound.createAsync(
+                    require('../../assets/kewpie.mp3'),
+                    { shouldPlay: false, isLooping: true }
+                );
+                const { sound: h } = await Audio.Sound.createAsync(
+                    require('../../assets/hotaru.mp3'),
+                    { shouldPlay: false }
+                );
+                setSoundKewpie(k);
+                setSoundHotaru(h);
             } catch (e) {
                 console.error("Audio Init Failed", e);
             }
@@ -40,6 +41,7 @@ export const useNativeAudio = () => {
 
         return () => {
             outputAudio = false;
+            // Clean up
             if (soundKewpie) soundKewpie.unloadAsync();
             if (soundHotaru) soundHotaru.unloadAsync();
         };
@@ -48,9 +50,9 @@ export const useNativeAudio = () => {
     const playKewpie = async () => {
         try {
             if (soundHotaru) await soundHotaru.stopAsync();
-
-            // Re-load if needed or play
-            // Implementation detail: simplified for this snippet
+            if (soundKewpie) {
+                await soundKewpie.replayAsync();
+            }
             setAudioState('kewpie');
         } catch (e) {
             console.log(e);
@@ -60,6 +62,9 @@ export const useNativeAudio = () => {
     const playHotaru = async () => {
         try {
             if (soundKewpie) await soundKewpie.stopAsync();
+            if (soundHotaru) {
+                await soundHotaru.replayAsync();
+            }
             setAudioState('hotaru');
         } catch (e) {
             console.log(e);
