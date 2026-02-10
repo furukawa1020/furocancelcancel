@@ -88,6 +88,60 @@ app.post('/sessions', async (req, res) => {
     console.log("Database initialized with Intentless Engine & Dynamic Recipes.");
 });
 
+async function initData() {
+    try {
+        // SQLite Workaround for Alter Table with Foreign Keys
+        await sequelize.query('PRAGMA foreign_keys = OFF;');
+        await sequelize.sync({ alter: true });
+        await sequelize.query('PRAGMA foreign_keys = ON;');
+
+        const count = await Recipe.count();
+        if (count === 0) {
+            // Tier 3: Standard (180s)
+            await Recipe.create({
+                title: "Standard Intentless",
+                base_duration_sec: 180,
+                tier: '3min',
+                steps_json: JSON.stringify([
+                    { time: 0, text: "シャワーON (Shower ON)" },
+                    { time: 10, text: "重要部位のみ (Critical Areas)" },
+                    { time: 130, text: "すすぐ (Rinse)" },
+                    { time: 150, text: "タオルへ (To Towel)" }
+                ])
+            });
+
+            // Tier 2: Survival (120s)
+            await Recipe.create({
+                title: "Survival Mode",
+                base_duration_sec: 120,
+                tier: '2min',
+                steps_json: JSON.stringify([
+                    { time: 0, text: "シャワーON" },
+                    { time: 10, text: "脇・股・足だけ (Armpits/Feet)" },
+                    { time: 90, text: "即すすぐ (Quick Rinse)" },
+                    { time: 100, text: "脱出 (Escape)" }
+                ])
+            });
+
+            // Tier 1: Reset (60s)
+            await Recipe.create({
+                title: "Absolute Minimum",
+                base_duration_sec: 60,
+                tier: '1min',
+                steps_json: JSON.stringify([
+                    { time: 0, text: "お湯を浴びる (Just Water)" },
+                    { time: 30, text: "深呼吸 (Breathe)" },
+                    { time: 45, text: "出る (Exit)" },
+                    { time: 50, text: "タオル (Towel)" }
+                ])
+            });
+            console.log("Seeded initial recipes.");
+        }
+    } catch (e) {
+        console.error("Init Data Failed:", e);
+    }
+}
+
 const PORT = 3000;
 app.listen(PORT, async () => {
     console.log(`Intentless Backend (Modular) running on port ${PORT}`);
