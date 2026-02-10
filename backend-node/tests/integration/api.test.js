@@ -34,6 +34,7 @@ jest.mock('../../src/models', () => ({
 jest.mock('../../src/services/BanditService', () => ({
     getOrCreateUser: jest.fn(),
     getTau: jest.fn(),
+    calculateEffectiveTau: jest.fn(),
     selectRecipe: jest.fn()
 }));
 
@@ -45,7 +46,8 @@ describe('API Integration', () => {
             const mockRecipe = { id: 1, title: 'Test Recipe' };
 
             BanditService.getOrCreateUser.mockResolvedValue(mockUser);
-            BanditService.getTau.mockResolvedValue({ tau_mu: 180 });
+            // Mock the calculated Tau directly, bypassing internal logic
+            BanditService.calculateEffectiveTau.mockResolvedValue(180);
             BanditService.selectRecipe.mockResolvedValue(mockRecipe);
 
             Session.create.mockResolvedValue({
