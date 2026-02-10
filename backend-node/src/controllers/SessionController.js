@@ -69,6 +69,27 @@ class SessionController {
             res.status(500).send("Error processing feedback");
         }
     }
+    static async getHistory(req, res) {
+        try {
+            // Ideally filter by User ID from auth middleware or query param
+            // For this hackathon/demo, we'll fetch all sessions for simplicity or specific user if provided
+            const { device_id } = req.query;
+
+            // Simple User Resolution (Same as Create)
+            const user = await BanditService.getOrCreateUser(device_id || 'default_test_user');
+
+            const sessions = await Session.findAll({
+                where: { UserId: user.id },
+                order: [['started_at', 'DESC']],
+                limit: 20
+            });
+
+            res.json({ history: sessions });
+        } catch (e) {
+            console.error("History fetch error", e);
+            res.status(500).json({ error: "Failed to fetch history" });
+        }
+    }
 }
 
 module.exports = SessionController;

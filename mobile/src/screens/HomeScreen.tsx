@@ -12,6 +12,7 @@ import * as Network from 'expo-network';
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
 import OnboardingScreen from './OnboardingScreen'; // New Import
+import HistoryScreen from './HistoryScreen'; // New Import
 
 const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production Railway URL
 
@@ -22,7 +23,7 @@ interface Step {
     time: number;
     text: string;
 }
-type ViewState = 'landing' | 'active' | 'done' | 'onboarding';
+type ViewState = 'landing' | 'active' | 'done' | 'onboarding' | 'history';
 
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
@@ -245,6 +246,10 @@ export default function HomeScreen() {
         return <OnboardingScreen onComplete={() => setViewState('landing')} />;
     }
 
+    if (viewState === 'history') {
+        return <HistoryScreen onClose={() => setViewState('landing')} />;
+    }
+
     if (viewState === 'landing') {
         return (
             <View style={styles.container}>
@@ -258,6 +263,11 @@ export default function HomeScreen() {
                     {/* SOS / SUMMON BUTTON */}
                     <Pressable onPress={handleSummon} style={styles.summonButton}>
                         <Text style={styles.summonText}>SUMMON BATHROOM</Text>
+                    </Pressable>
+
+                    {/* HISTORY BUTTON */}
+                    <Pressable onPress={() => setViewState('history')} style={styles.historyButton}>
+                        <Text style={styles.historyText}>VIEW HISTORY & AI LOGS</Text>
                     </Pressable>
 
                     {/* CONFIG BUTTON */}
@@ -501,7 +511,7 @@ const styles = StyleSheet.create({
         textDecorationLine: 'underline',
     },
     wifiButton: {
-        marginTop: 40,
+        marginTop: 20,
         padding: 15,
         borderWidth: 1,
         borderColor: COLORS.textDim,
@@ -512,6 +522,16 @@ const styles = StyleSheet.create({
         color: COLORS.accentIndigo,
         fontSize: 12,
         fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    historyButton: {
+        marginTop: 20,
+        paddingVertical: 10,
+    },
+    historyText: {
+        color: COLORS.textDim,
+        fontSize: 12,
+        textDecorationLine: 'underline',
         letterSpacing: 1,
     }
 });
