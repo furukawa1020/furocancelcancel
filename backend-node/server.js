@@ -12,6 +12,11 @@ app.use(express.json());
 // Start the Tyrant
 AgentService.start();
 
+// Root Route (Health Check)
+app.get('/', (req, res) => {
+    res.send("Intentless Backend Operational. The Tyrant is watching.");
+});
+
 // --- ROUTES ---
 
 // 0. SUMMON (Delegated to Agent)
