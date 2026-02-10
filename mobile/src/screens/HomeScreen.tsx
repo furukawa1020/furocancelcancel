@@ -261,8 +261,13 @@ export default function HomeScreen() {
                     </Pressable>
 
                     {/* CONFIG BUTTON */}
-                    <Pressable onPress={registerHomeWifi} style={{ marginTop: 20, opacity: 0.5 }}>
-                        <Text style={{ color: COLORS.textDim, fontSize: 10 }}>[ SET CURRENT WI-FI AS HOME ]</Text>
+                    <Pressable onPress={registerHomeWifi} style={styles.wifiButton}>
+                        <Text style={styles.wifiText}>
+                            [ REGISTER CURRENT WI-FI AS HOME ]
+                        </Text>
+                        <Text style={{ color: COLORS.textDim, fontSize: 10, marginTop: 4 }}>
+                            Tap to secure your home perimeter.
+                        </Text>
                     </Pressable>
                 </View>
             </View>
@@ -494,5 +499,19 @@ const styles = StyleSheet.create({
     restartLink: {
         color: COLORS.textDim,
         textDecorationLine: 'underline',
+    },
+    wifiButton: {
+        marginTop: 40,
+        padding: 15,
+        borderWidth: 1,
+        borderColor: COLORS.textDim,
+        alignItems: 'center',
+        opacity: 0.8,
+    },
+    wifiText: {
+        color: COLORS.accentIndigo,
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     }
 });
