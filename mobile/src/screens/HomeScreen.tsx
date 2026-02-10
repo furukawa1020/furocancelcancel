@@ -11,7 +11,7 @@ import { useNfc } from '../hooks/useNfc';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import OnboardingScreen from './OnboardingScreen'; // New Import
 
-const API_BASE = 'http://192.168.68.58:3000'; // Local IP
+const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production Railway URL
 
 const { width } = Dimensions.get('window');
 
