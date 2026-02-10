@@ -75,6 +75,10 @@ export default function HomeScreen() {
         if (nfcState === 'success') {
             // Tag Detected!
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // DEBUG ALERT
+            alert(`NFC Detected! State: ${viewState}`);
+
             if (viewState === 'landing') {
                 startSession();
             } else if (viewState === 'active') {
@@ -125,6 +129,8 @@ export default function HomeScreen() {
         return state.type === Network.NetworkStateType.WIFI && state.isConnected;
     };
 
+    // --- ACTIONS ---
+
     const handleTap = () => {
         // Trigger NFC Scan
         scanTag();
@@ -143,7 +149,14 @@ export default function HomeScreen() {
 
     const startSession = async (isAuto = false) => {
         try {
-            // ... (Wi-Fi Check)
+            // Validation: Home Wi-Fi Check
+            if (isAuto) {
+                const home = await isHomeWifi();
+                if (!home) {
+                    console.log("[Mobile] Auto-Start blocked: Not on Home Wi-Fi");
+                    return;
+                }
+            }
 
             if (!deviceId) return; // Guard
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -173,7 +186,6 @@ export default function HomeScreen() {
                 }
             }
 
-            setViewState('active');
             setViewState('active');
         } catch (e: any) {
             console.error("Start Failed", e);
@@ -212,6 +224,13 @@ export default function HomeScreen() {
             console.error("Feedback error", e);
         }
     };
+
+    // FORCE STOP (Debug)
+    const debugForceStop = () => {
+        alert("Force Stopping...");
+        finishSession();
+    };
+
 
     // --- TIMERS ---
 
@@ -307,8 +326,14 @@ export default function HomeScreen() {
                     })}
                 </View>
 
+                {/* HIDDEN BUTTON for NFC TRIGGER (Top Layer) */}
                 <Pressable onPress={handleTap} style={styles.hiddenButton}>
                     <Text style={styles.hiddenText}>{nfcState === 'scanning' ? 'Scanning...' : '(Towel Tap)'}</Text>
+                </Pressable>
+
+                {/* DEBUG STOP BUTTON (Bottom Right - Visible for now) */}
+                <Pressable onPress={debugForceStop} style={{ position: 'absolute', bottom: 40, right: 20, padding: 10, backgroundColor: 'red', opacity: 0.5 }}>
+                    <Text style={{ color: 'white', fontWeight: 'bold' }}>DEBUG STOP</Text>
                 </Pressable>
             </View>
         );
