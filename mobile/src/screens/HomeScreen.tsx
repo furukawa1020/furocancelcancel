@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import axios from 'axios';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
@@ -10,6 +10,7 @@ import { useNfc } from '../hooks/useNfc';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import * as Network from 'expo-network';
 import * as Location from 'expo-location';
+import * as Linking from 'expo-linking';
 import OnboardingScreen from './OnboardingScreen'; // New Import
 
 const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production Railway URL
@@ -130,6 +131,8 @@ export default function HomeScreen() {
 
     // --- ACTIONS ---
 
+    // --- ACTIONS ---
+
     const handleTap = () => {
         // Trigger NFC Scan
         scanTag();
@@ -145,24 +148,6 @@ export default function HomeScreen() {
             alert("Connection Failed");
         }
     };
-
-    // Deep Link Handler (Intentless Start)
-    useEffect(() => {
-        const handleDeepLink = async (event: { url: string }) => {
-            if (event.url.includes('start')) {
-                console.log("[Mobile] Deep Link Start Triggered");
-                startSession();
-            }
-        };
-
-        // Check initial url
-        import('expo-linking').then(Linking => {
-            Linking.getInitialURL().then(url => {
-                if (url && url.includes('start')) startSession();
-            });
-            Linking.addEventListener('url', handleDeepLink);
-        });
-    }, []);
 
     const startSession = async (isAuto = false) => {
         try {
