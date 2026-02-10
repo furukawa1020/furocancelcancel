@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, StatusBar } from 'react-native';
-import Animated, { FadeIn, FadeOut, ZoomIn, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+// Standard Animated would go here if needed, but for now simple conditional rendering is fine to fix the crash
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
@@ -57,36 +57,36 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
             <StatusBar barStyle="light-content" />
 
             {step === 'intro' && (
-                <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.center}>
+                <View style={styles.center}>
                     <Text style={styles.label}>DEMO MODE</Text>
                     <Text style={styles.title}>Tap the Towel.</Text>
                     <Pressable onPress={() => setStep('demo_active')} style={styles.btnCircle}>
                         <Text style={styles.btnText}>TAP</Text>
                     </Pressable>
-                </Animated.View>
+                </View>
             )}
 
             {step === 'demo_active' && (
-                <Animated.View entering={ZoomIn} style={styles.center}>
+                <View style={styles.center}>
                     <Text style={styles.timer}>{formatTime(demoTime)}</Text>
                     <Text style={styles.subtext}>Intentless System Taking Over...</Text>
-                </Animated.View>
+                </View>
             )}
 
             {step === 'demo_done' && (
-                <Animated.View entering={FadeIn} style={styles.center}>
+                <View style={styles.center}>
                     <Text style={styles.doneTitle}>Rest.</Text>
-                </Animated.View>
+                </View>
             )}
 
             {step === 'final' && (
-                <Animated.View entering={FadeIn} style={styles.center}>
+                <View style={styles.center}>
                     <Text style={styles.title}>That was 3 minutes.</Text>
                     <Text style={styles.text}>The system handles the time.</Text>
                     <Pressable onPress={() => { Haptics.selectionAsync(); onComplete(); }} style={styles.btnMain}>
                         <Text style={styles.btnMainText}>START REALITY</Text>
                     </Pressable>
-                </Animated.View>
+                </View>
             )}
 
         </View>

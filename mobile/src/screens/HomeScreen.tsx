@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar, Animated, Easing } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import axios from 'axios';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
@@ -33,28 +33,7 @@ export default function HomeScreen() {
     const [newTau, setNewTau] = useState<number | null>(null);
     const [deviceId, setDeviceId] = useState<string | null>(null);
 
-    // Animation Values (Standard Animated API)
-    const breatheAnim = useRef(new Animated.Value(0.5)).current;
-
     useEffect(() => {
-        // Continuous Breathing Animation
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(breatheAnim, {
-                    toValue: 1,
-                    duration: 3000,
-                    easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(breatheAnim, {
-                    toValue: 0.5,
-                    duration: 3000,
-                    easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
-                }),
-            ])
-        ).start();
-
         // Init Identity
         initIdentity();
     }, []);
@@ -91,7 +70,7 @@ export default function HomeScreen() {
         return (
             <View style={styles.container}>
                 <StatusBar barStyle="light-content" />
-                <Animated.View style={[styles.centerContent, { opacity: breatheAnim }]}>
+                <View style={[styles.centerContent]}>
                     <Text style={styles.label}>INTENTLESS BATH</Text>
                     <Pressable onPress={handleTap} style={styles.startButton}>
                         <Text style={styles.startText}>{nfcState === 'scanning' ? 'SCANNING...' : 'TAP TOWEL'}</Text>
@@ -101,7 +80,7 @@ export default function HomeScreen() {
                     <Pressable onPress={handleSummon} style={styles.summonButton}>
                         <Text style={styles.summonText}>SUMMON BATHROOM</Text>
                     </Pressable>
-                </Animated.View>
+                </View>
             </View>
         );
     }
