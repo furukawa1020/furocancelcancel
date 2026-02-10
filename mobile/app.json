@@ -2,6 +2,7 @@
   "expo": {
     "name": "Intentless Bath",
     "slug": "intentless-bath",
+    "scheme": "intentless-bath",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +17,9 @@
       "bundleIdentifier": "com.intentless.bath",
       "infoPlist": {
         "NFCReaderUsageDescription": "To detect the bath towel tag.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -25,14 +28,17 @@
         "backgroundColor": "#050511"
       },
       "package": "com.intentless.bath",
-      "permissions": ["android.permission.NFC", "android.permission.WAKE_LOCK"]
+      "permissions": [
+        "android.permission.NFC",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-        "react-native-nfc-manager",
-        "expo-av"
+      "react-native-nfc-manager",
+      "expo-av"
     ]
   }
 }
