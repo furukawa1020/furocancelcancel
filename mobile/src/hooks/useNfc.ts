@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+import NfcManager, { NfcTech, Ndef, NfcEvents } from 'react-native-nfc-manager';
 import { Platform } from 'react-native';
 
 export type NfcState = 'idle' | 'scanning' | 'success' | 'error' | 'unsupported';
@@ -20,8 +20,8 @@ export function useNfc() {
         checkNfc();
 
         return () => {
-            NfcManager.setEventListener(NfcTech.Ndef, null);
-            NfcManager.setEventListener(NfcTech.NfcA, null);
+            NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
+            NfcManager.setEventListener(NfcEvents.SessionClosed, null);
         };
     }, []);
 

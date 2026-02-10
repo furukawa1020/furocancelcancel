@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useIntentlessSession } from '../hooks/useIntentlessSession';
 import { useAudioContext } from '../components/useAudioContext';
 import { motion, AnimatePresence } from 'framer-motion';
