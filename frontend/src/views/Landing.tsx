@@ -17,7 +17,7 @@ const Landing = () => {
         }
 
         // --- 2. Create Audio Context (Lazy) ---
-        audioRef.current = new Audio('/kewpie_3min_cooking.mp3');
+        audioRef.current = new Audio('/kewpie.mp3');
         audioRef.current.loop = true;
 
         // --- 3. Summon Polling ---
