@@ -1,22 +1,26 @@
 const BanditService = require('../../src/services/BanditService');
-const { BanditStat, Recipe, User } = require('../../src/models');
+const { BanditStat } = require('../../src/models');
+const WeatherService = require('../../src/services/WeatherService');
 
-// Mock Sequelize Models
+// Mock Models
 jest.mock('../../src/models', () => ({
     BanditStat: {
         findOne: jest.fn(),
         create: jest.fn(),
-    },
-    Recipe: {
-        findOne: jest.fn(),
-    },
-    User: {
-        findOne: jest.fn(),
-        create: jest.fn()
+        update: jest.fn() // Add update if needed
     }
 }));
 
+// Mock Weather Service
+jest.mock('../../src/services/WeatherService');
+
 describe('BanditService', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        // Default: No weather impact
+        WeatherService.getCurrentTemperature.mockResolvedValue(null);
+    });
+
     afterEach(() => {
         jest.clearAllMocks();
     });

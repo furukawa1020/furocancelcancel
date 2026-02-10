@@ -1,5 +1,7 @@
 const { User, BanditStat, Recipe } = require('../models');
 
+const WeatherService = require('./WeatherService');
+
 class BanditService {
     // Get current Tau estimate for User
     static async getTau(userId) {
@@ -48,13 +50,25 @@ class BanditService {
 
         const hour = now.getHours();
 
-        // Context: Morning Rush (6:00 - 10:00)
+        // 1. Time Context: Morning Rush (6:00 - 10:00)
         if (hour >= 6 && hour < 10) {
             tau = tau * 0.8;
             console.log(`[Bandit] Context: Morning Rush. Tau scaled to ${tau}`);
         }
 
-        return Math.floor(tau);
+        // 2. Weather Context
+        const temp = await WeatherService.getCurrentTemperature();
+        if (temp !== null) {
+            if (temp < 10) {
+                tau = tau * 1.15; // +15% for Cold
+                console.log(`[Bandit] Context: Cold (${temp}°C). Tau scaled to ${tau}`);
+            } else if (temp > 30) {
+                tau = tau * 0.9; // -10% for Hot
+                console.log(`[Bandit] Context: Hot (${temp}°C). Tau scaled to ${tau}`);
+            }
+        }
+
+        return Math.round(tau);
     }
 
     static async getOrCreateUser(deviceId) {
