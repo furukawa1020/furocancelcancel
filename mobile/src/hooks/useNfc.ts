@@ -20,7 +20,7 @@ export function useNfc() {
         checkNfc();
 
         return () => {
-            NfcManager.setEventListener(NfcTech.NDef, null);
+            NfcManager.setEventListener(NfcTech.Ndef, null);
             NfcManager.setEventListener(NfcTech.NfcA, null);
         };
     }, []);

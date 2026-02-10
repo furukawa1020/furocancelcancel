@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { useNativeAudio } from '../hooks/useNativeAudio';
+import { useNfc } from '../hooks/useNfc';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
 import OnboardingScreen from './OnboardingScreen'; // New Import
 

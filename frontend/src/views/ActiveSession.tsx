@@ -2,20 +2,18 @@ import React, { useEffect } from 'react';
 import { useIntentlessSession } from '../hooks/useIntentlessSession';
 import { useAudioContext } from '../components/useAudioContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 
 const ActiveSession = () => {
     const { playKewpie, isLocked } = useAudioContext();
-    const { timeLeft, totalTime, recipe, recipeTitle, formatTime, sessionId } = useIntentlessSession();
-    const navigate = useNavigate();
+    const { timeLeft, totalTime, recipe, recipeTitle, formatTime } = useIntentlessSession();
 
     // AUDIO: Attempt Autoplay
     useEffect(() => {
         if (!isLocked) playKewpie();
     }, [isLocked]);
 
-    // Calculate progress for visuals
-    const progress = timeLeft !== null ? (timeLeft / totalTime) : 1;
+    // Calculate progress for visuals (if needed later, else remove)
+    // const progress = timeLeft !== null ? (timeLeft / totalTime) : 1;
 
     return (
         <div className="h-screen w-screen bg-[#050511] flex flex-col items-center justify-between py-12 text-[#E2E8F0] font-serif overflow-hidden relative selection:bg-indigo-500 selection:text-white">
@@ -97,8 +95,8 @@ const ActiveSession = () => {
                             const isCurrent = timeLeft !== null && (totalTime - timeLeft >= step.time) && (idx === recipe.length - 1 || totalTime - timeLeft < recipe[idx + 1].time);
 
                             return (
-                                <li key={idx} className={`flex gap-6 transition-opacity duration-500 ${isCurrent ? 'opacity-100' : 'opacity-40'}`}>
-                                    <span className={`font-mono w-12 text-right ${isCurrent ? 'text-[#6366F1] font-bold' : 'text-gray-500'}`}>
+                                <li key={idx} className={`flex gap - 6 transition - opacity duration - 500 ${isCurrent ? 'opacity-100' : 'opacity-40'} `}>
+                                    <span className={`font - mono w - 12 text - right ${isCurrent ? 'text-[#6366F1] font-bold' : 'text-gray-500'} `}>
                                         {formatTime(step.time)}
                                     </span>
                                     <span className="flex-1 tracking-wide">
