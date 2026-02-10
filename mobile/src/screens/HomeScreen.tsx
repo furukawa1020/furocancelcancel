@@ -46,6 +46,31 @@ export default function HomeScreen() {
             if (event.url.includes('auto-start')) {
                 // Triggered by Automation (Wi-Fi)
                 // "Connection -> Instant Start"
+                if (viewState === 'landing') {
+                    console.log("[Mobile] Auto-Start Triggered via Deep Link");
+                    startSession(true); // true = isAuto
+                }
+            }
+        };
+
+        // Check if app was opened by the link (Cold Start)
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink({ url });
+        });
+
+        // Listen for new links (Warm Start)
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+        return () => subscription.remove();
+    }, [viewState, deviceId]);
+
+    // HANDLE DEEP LINKS (The Wi-Fi Trigger)
+    // URL: intentless-bath://auto-start
+    useEffect(() => {
+        const handleDeepLink = (event: { url: string }) => {
+            console.log("Deep Link received:", event.url);
+            if (event.url.includes('auto-start')) {
+                // Triggered by Automation (Wi-Fi)
+                // "Connection -> Instant Start"
                 if (agentState === 'idle') {
                     console.log("[Mobile] Auto-Start Triggered via Deep Link");
                     startSession(true); // true = isAuto
