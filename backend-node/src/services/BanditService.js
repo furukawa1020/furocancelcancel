@@ -42,6 +42,21 @@ class BanditService {
         return newTau;
     }
 
+    static async calculateEffectiveTau(userId, now = new Date()) {
+        const stat = await this.getTau(userId);
+        let tau = stat.tau_mu;
+
+        const hour = now.getHours();
+
+        // Context: Morning Rush (6:00 - 10:00)
+        if (hour >= 6 && hour < 10) {
+            tau = tau * 0.8;
+            console.log(`[Bandit] Context: Morning Rush. Tau scaled to ${tau}`);
+        }
+
+        return Math.floor(tau);
+    }
+
     static async getOrCreateUser(deviceId) {
         if (!deviceId) return null;
         let user = await User.findOne({ where: { device_id: deviceId } });

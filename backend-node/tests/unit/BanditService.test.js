@@ -66,4 +66,26 @@ describe('BanditService', () => {
             expect(mockStat.tau_mu).toBe(300);
         });
     });
+
+    describe('calculateEffectiveTau', () => {
+        it('should return REDUCED tau (0.8x) in the Morning (8:00)', async () => {
+            const mockStat = { tau_mu: 180 };
+            BanditStat.findOne.mockResolvedValue(mockStat);
+
+            const morningDate = new Date('2026-02-10T08:00:00');
+            const tau = await BanditService.calculateEffectiveTau('u1', morningDate);
+
+            expect(tau).toBe(144); // 180 * 0.8
+        });
+
+        it('should return NORMAL tau (1.0x) at Night (20:00)', async () => {
+            const mockStat = { tau_mu: 180 };
+            BanditStat.findOne.mockResolvedValue(mockStat);
+
+            const nightDate = new Date('2026-02-10T20:00:00');
+            const tau = await BanditService.calculateEffectiveTau('u1', nightDate);
+
+            expect(tau).toBe(180);
+        });
+    });
 });
