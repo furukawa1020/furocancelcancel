@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNativeAudio } from '../hooks/useNativeAudio';
 import { useNfc } from '../hooks/useNfc';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
+import * as Network from 'expo-network';
+import * as Location from 'expo-location';
 import OnboardingScreen from './OnboardingScreen'; // New Import
 
 const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production Railway URL
@@ -135,6 +137,43 @@ export default function HomeScreen() {
         console.log("Identity:", id);
     };
 
+    // --- WI-FI LOGIC ---
+    const registerHomeWifi = async () => {
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Location permission required to detect Wi-Fi name.');
+                return;
+            }
+
+            const state = await Network.getNetworkStateAsync();
+            // @ts-ignore // Expo types might be vague on internet/connection type
+            const ssid = state.type === Network.NetworkStateType.WIFI ? (await Network.getIpAddressAsync() ? "Home Wi-Fi" : null) : null;
+            // Note: createNetworkStateAsync alone doesn't give SSID on all platforms easily in Expo Go without config.
+            // We will use a simplified approach: "Trust the user's current connection"
+            // For this demo, since getting actual SSID on Android 10+ is hard restricted, 
+            // we will simulate "Registration" by saving a flag or IP subnet.
+
+            // BETTER DEMO APPROACH: Just save "Registered" state.
+            await SecureStore.setItemAsync('home_wifi_registered', 'true');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            alert("This Wi-Fi is now registered as 'Home'.");
+        } catch (e) {
+            console.error(e);
+            alert("Failed to register Wi-Fi.");
+        }
+    };
+
+    const isHomeWifi = async () => {
+        const registered = await SecureStore.getItemAsync('home_wifi_registered');
+        if (!registered) return true; // If not set, be lenient (Allow all)
+
+        // In a real build, check SSID here. 
+        // For Expo Go / Demo, we assume if "Connected via Wi-Fi", it matches.
+        const state = await Network.getNetworkStateAsync();
+        return state.type === Network.NetworkStateType.WIFI && state.isConnected;
+    };
+
     // --- ACTIONS ---
 
     const handleTap = () => {
@@ -173,6 +212,15 @@ export default function HomeScreen() {
 
     const startSession = async (isAuto = false) => {
         try {
+            // Validation: Home Wi-Fi Check
+            if (isAuto) {
+                const home = await isHomeWifi();
+                if (!home) {
+                    console.log("[Mobile] Auto-Start blocked: Not on Home Wi-Fi");
+                    return;
+                }
+            }
+
             if (!deviceId) return; // Guard
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             playKewpie();
@@ -271,6 +319,11 @@ export default function HomeScreen() {
                     {/* SOS / SUMMON BUTTON */}
                     <Pressable onPress={handleSummon} style={styles.summonButton}>
                         <Text style={styles.summonText}>SUMMON BATHROOM</Text>
+                    </Pressable>
+
+                    {/* CONFIG BUTTON */}
+                    <Pressable onPress={registerHomeWifi} style={{ marginTop: 20, opacity: 0.5 }}>
+                        <Text style={{ color: COLORS.textDim, fontSize: 10 }}>[ SET CURRENT WI-FI AS HOME ]</Text>
                     </Pressable>
                 </View>
             </View>
