@@ -1,107 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect } from 'react';
+import { useIntentlessSession } from '../hooks/useIntentlessSession';
 import { useAudioContext } from '../components/useAudioContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE = 'http://localhost:3000';
-
-interface Step {
-    time: number;
-    text: string;
-}
-
-interface Recipe {
-    title: string;
-    steps_json: string; // JSON string from DB
-}
 
 const ActiveSession = () => {
     const { playKewpie, isLocked } = useAudioContext();
-    const [timeLeft, setTimeLeft] = useState<number | null>(null); // Null until loaded
-    const [totalTime, setTotalTime] = useState(180); // Default, updates from backend
-    const [recipe, setRecipe] = useState<Step[]>([]);
-    const [recipeTitle, setRecipeTitle] = useState("Loading...");
-    const [sessionId, setSessionId] = useState<string | null>(null);
+    const { timeLeft, totalTime, recipe, recipeTitle, formatTime, sessionId } = useIntentlessSession();
     const navigate = useNavigate();
-
-    // START: Session Initialization
-    useEffect(() => {
-        const startSession = async () => {
-            try {
-                const isNfc = window.location.pathname.includes('/nfc');
-                const deviceId = localStorage.getItem('device_id');
-                const res = await axios.post(`${API_BASE}/sessions`, {
-                    source: isNfc ? 'nfc' : 'web',
-                    device_id: deviceId
-                });
-
-                const sid = res.data.id;
-                setSessionId(sid);
-
-                // Set Initial Tau from backend (Bandit Logic)
-                const tau = res.data.tau_limit || 180;
-                setTotalTime(tau);
-                setTimeLeft(tau); // Initialize countdown
-
-                // Fetch full details to get Recipe
-                const detailRes = await axios.get(`${API_BASE}/sessions/${sid}`);
-                if (detailRes.data.recipe) {
-                    setRecipeTitle(detailRes.data.recipe.title);
-                    setRecipe(JSON.parse(detailRes.data.recipe.steps_json));
-                }
-
-            } catch (e) {
-                console.error("Failed to start session", e);
-            }
-        };
-        startSession();
-    }, []);
 
     // AUDIO: Attempt Autoplay
     useEffect(() => {
         if (!isLocked) playKewpie();
     }, [isLocked]);
-
-    // TIMER: Local Countdown
-    useEffect(() => {
-        if (timeLeft === null) return;
-
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev === null || prev <= 0) {
-                    clearInterval(timer);
-                    // navigate('/session/timeout'); // Optional auto-redirect
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        // POLLING: Check for done status (NFC Tap)
-        const poller = setInterval(async () => {
-            if (sessionId) {
-                try {
-                    const res = await axios.get(`${API_BASE}/sessions/${sessionId}`);
-                    if (res.data.proof_state === 'done') {
-                        navigate(`/session/${sessionId}/done`);
-                    }
-                } catch (e) { console.error(e); }
-            }
-        }, 2000);
-
-        return () => {
-            clearInterval(timer);
-            clearInterval(poller);
-        };
-    }, [timeLeft, sessionId, navigate]);
-
-    // UTILS
-    const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
 
     // Calculate progress for visuals
     const progress = timeLeft !== null ? (timeLeft / totalTime) : 1;
