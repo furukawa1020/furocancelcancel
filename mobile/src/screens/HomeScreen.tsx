@@ -80,6 +80,24 @@ export default function HomeScreen() {
         }
     };
 
+    // Deep Link Handler (Intentless Start)
+    useEffect(() => {
+        const handleDeepLink = async (event: { url: string }) => {
+            if (event.url.includes('start')) {
+                console.log("[Mobile] Deep Link Start Triggered");
+                startSession();
+            }
+        };
+
+        // Check initial url
+        import('expo-linking').then(Linking => {
+            Linking.getInitialURL().then(url => {
+                if (url && url.includes('start')) startSession();
+            });
+            Linking.addEventListener('url', handleDeepLink);
+        });
+    }, []);
+
     const startSession = async () => {
         try {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
