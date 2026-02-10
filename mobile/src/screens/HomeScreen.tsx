@@ -43,7 +43,101 @@ export default function HomeScreen() {
         initIdentity();
     }, []);
 
-    // ... (Deep Link & NFC effects)
+    // HANDLE DEEP LINKS (The Wi-Fi Trigger)
+    // URL: intentless-bath://auto-start
+    useEffect(() => {
+        const handleDeepLink = (event: { url: string }) => {
+            console.log("Deep Link received:", event.url);
+            if (event.url.includes('auto-start')) {
+                // Triggered by Automation (Wi-Fi)
+                // "Connection -> Instant Start"
+                if (viewState === 'landing') {
+                    console.log("[Mobile] Auto-Start Triggered via Deep Link");
+                    startSession(true); // true = isAuto
+                }
+            }
+        };
+
+        // Check if app was opened by the link (Cold Start)
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink({ url });
+        });
+
+        // Listen for new links (Warm Start)
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+        return () => subscription.remove();
+    }, [viewState, deviceId]);
+
+    // Monitor NFC State
+    useEffect(() => {
+        if (nfcState === 'success') {
+            // Tag Detected!
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (viewState === 'landing') {
+                startSession();
+            } else if (viewState === 'active') {
+                finishSession();
+            }
+            resetNfc();
+        }
+    }, [nfcState]);
+
+    const initIdentity = async () => {
+        let id = await SecureStore.getItemAsync('device_id');
+        if (!id) {
+            id = uuidv4();
+            await SecureStore.setItemAsync('device_id', id);
+        }
+        setDeviceId(id);
+        console.log("Identity:", id);
+    };
+
+    // --- WI-FI LOGIC ---
+    const registerHomeWifi = async () => {
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Location permission required to detect Wi-Fi name.');
+                return;
+            }
+
+            const state = await Network.getNetworkStateAsync();
+            // @ts-ignore // Expo types might be vague on internet/connection type
+            const ssid = state.type === Network.NetworkStateType.WIFI ? (await Network.getIpAddressAsync() ? "Home Wi-Fi" : null) : null;
+
+            // BETTER DEMO APPROACH: Just save "Registered" state.
+            await SecureStore.setItemAsync('home_wifi_registered', 'true');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            alert("This Wi-Fi is now registered as 'Home'.");
+        } catch (e) {
+            console.error(e);
+            alert("Failed to register Wi-Fi.");
+        }
+    };
+
+    const isHomeWifi = async () => {
+        const registered = await SecureStore.getItemAsync('home_wifi_registered');
+        if (!registered) return true; // If not set, be lenient (Allow all)
+
+        const state = await Network.getNetworkStateAsync();
+        return state.type === Network.NetworkStateType.WIFI && state.isConnected;
+    };
+
+    const handleTap = () => {
+        // Trigger NFC Scan
+        scanTag();
+    };
+
+    const handleSummon = async () => {
+        try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await axios.post(`${API_BASE}/summon`);
+            alert("Bathroom Summoned! Go now!");
+        } catch (e) {
+            console.error("Summon Failed", e);
+            alert("Connection Failed");
+        }
+    };
 
     const startSession = async (isAuto = false) => {
         try {
