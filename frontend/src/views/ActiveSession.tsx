@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ActiveSession = () => {
     const { playKewpie, isLocked } = useAudioContext();
-    const { timeLeft, totalTime, recipe, recipeTitle, formatTime, isSummoning } = useIntentlessSession();
+    const { timeLeft, totalTime, recipe, recipeTitle, formatTime, isSummoning, isNoisy, audioLevel } = useIntentlessSession();
 
     // AUDIO: Attempt Autoplay
     useEffect(() => {
@@ -24,6 +24,37 @@ const ActiveSession = () => {
 
     return (
         <div className="h-screen w-screen bg-[#050511] flex flex-col items-center justify-between py-12 text-[#E2E8F0] font-serif overflow-hidden relative selection:bg-indigo-500 selection:text-white">
+
+            {/* AUDIO VISUALIZER (HYDRO-SONIC CHECK) */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 opacity-50">
+                <div className="text-[10px] font-mono tracking-widest">{isNoisy ? "MIC ON" : "SILENCE DETECTED"}</div>
+                <div className="flex gap-1 h-4 items-end">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i}
+                            className={`w-1 bg-white transition-all duration-100 ${isNoisy ? 'bg-[#6366F1]' : 'bg-red-500'}`}
+                            style={{ height: `${Math.min(100, Math.max(10, audioLevel * (i + 1) * 0.5))}%` }}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* SILENCE LOCK OVERLAY */}
+            <AnimatePresence>
+                {!isNoisy && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-40 bg-red-900/20 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+                    >
+                        <div className="text-center">
+                            <div className="text-4xl animate-pulse">🔇</div>
+                            <div className="text-xl font-bold tracking-widest mt-2 text-red-400">SHOWER REQUIRED</div>
+                            <div className="text-xs font-mono opacity-70 mt-1">Timer Paused</div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Audio Unlock Overlay - Subtle & Intentless */}
             <AnimatePresence>
