@@ -8,8 +8,8 @@ class SessionController {
             const effDeviceId = device_id || (source === 'mobile_nfc' ? 'unknown_mobile' : 'default_test_user');
 
             const user = await BanditService.getOrCreateUser(effDeviceId);
-            const stat = await BanditService.getTau(user.id);
-            const tau = Math.floor(stat.tau_mu);
+            // Use Contextual Bandit Logic
+            const tau = await BanditService.calculateEffectiveTau(user.id);
             const recipe = await BanditService.selectRecipe(tau);
 
             const session = await Session.create({
