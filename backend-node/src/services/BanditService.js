@@ -37,7 +37,9 @@ class BanditService {
             newTau = currentTau - 15;
         }
 
-        newTau = Math.max(45, Math.min(300, newTau));
+        // Clamp
+        if (newTau < 150) newTau = 150; // Min 2.5 min
+        if (newTau > 240) newTau = 240; // Max 4 min
 
         stat.tau_mu = newTau;
         await stat.save();
@@ -67,6 +69,12 @@ class BanditService {
                 console.log(`[Bandit] Context: Hot (${temp}°C). Tau scaled to ${tau}`);
             }
         }
+
+        // 3. The "3-Minute Anchor" Clamp
+        // We want to keep it close to 180s (3 mins) to lower the hurdle.
+        // Min: 2.5 mins (150s), Max: 4 mins (240s)
+        if (tau < 150) tau = 150;
+        if (tau > 240) tau = 240;
 
         return Math.round(tau);
     }
