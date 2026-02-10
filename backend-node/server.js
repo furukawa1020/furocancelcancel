@@ -3,32 +3,29 @@ const cors = require('cors');
 const app = express();
 const { sequelize, Recipe } = require('./src/models');
 
+const AgentService = require('./src/services/AgentService');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// In-Memory Summon State (Simple flag)
-let isSummoning = false;
+// Start the Tyrant
+AgentService.start();
 
 // --- ROUTES ---
 
-// 0. SUMMON (The Sofa Trigger)
+// 0. SUMMON (Delegated to Agent)
 app.post('/summon', (req, res) => {
-    isSummoning = true;
-    console.log("[Summon] THE SIREN IS ACTIVE. LURING USER...");
-
-    // Auto-reset after 30 seconds (to stop the siren if ignored)
-    setTimeout(() => { isSummoning = false; }, 30000);
-
+    AgentService.manualSummon();
     res.json({ status: 'summoning' });
 });
 
 app.get('/summon/status', (req, res) => {
-    res.json({ isSummoning });
+    res.json({ isSummoning: AgentService.isSummoning });
 });
 
 app.post('/summon/stop', (req, res) => {
-    isSummoning = false;
+    AgentService.stopSummon();
     res.json({ status: 'stopped' });
 });
 
@@ -43,6 +40,9 @@ app.post('/sessions', async (req, res) => {
         console.warn("Sync warning:", e.message);
         // Fallback: If structure changed too much, might need manual migration or force
     }
+
+    // Agent is appeased. Stop screaming.
+    AgentService.stopSummon();
 
     const count = await Recipe.count();
     if (count === 0) {
