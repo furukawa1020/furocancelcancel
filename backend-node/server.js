@@ -8,6 +8,7 @@ const BanditBrain = require('./src/ai/BanditBrain');
 const WeatherService = require('./src/services/WeatherService');
 
 // Middleware
+app.use(express.static('public')); // Serve launcher.html
 app.use(cors());
 app.use(express.json());
 
@@ -223,9 +224,9 @@ app.post('/sessions/:id/feedback', async (req, res) => {
 
 async function initData() {
     try {
-        // SQLite Workaround for Alter Table with Foreign Keys
+        // SQLite Workaround: Force Sync to reset schema and avoid migration errors
         await sequelize.query('PRAGMA foreign_keys = OFF;');
-        await sequelize.sync({ alter: true });
+        await sequelize.sync({ force: true }); // RESET DB on restart (Dev/Demo Mode)
         await sequelize.query('PRAGMA foreign_keys = ON;');
 
         const count = await Recipe.count();

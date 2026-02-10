@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intentless Auto-Start</title>
+    <style>
+        body { background-color: #000; color: #fff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        a { color: #6366f1; font-size: 24px; padding: 20px; border: 1px solid #6366f1; text-decoration: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>INTENTLESS LAUNCHER</h1>
+    <p>Attempting to summon the bath agent...</p>
+    
+    <a href="intentless-bath://auto-start" id="link">LAUNCH NOW</a>
+
+    <script>
+        // Auto-redirect
+        setTimeout(() => {
+            window.location.href = "intentless-bath://auto-start";
+        }, 500);
+
+        // Fallback info
+        setTimeout(() => {
+            document.querySelector('p').innerText = "If nothing happened, tap the button.";
+        }, 3000);
+    </script>
+</body>
+</html>
