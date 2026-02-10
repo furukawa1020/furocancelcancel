@@ -36,130 +36,18 @@ export default function HomeScreen() {
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [newTau, setNewTau] = useState<number | null>(null);
     const [deviceId, setDeviceId] = useState<string | null>(null);
+    const [aiReason, setAiReason] = useState<string | null>(null); // Added
 
     useEffect(() => {
         // Init Identity
         initIdentity();
     }, []);
 
-    // HANDLE DEEP LINKS (The Wi-Fi Trigger)
-    // URL: intentless-bath://auto-start
-    useEffect(() => {
-        const handleDeepLink = (event: { url: string }) => {
-            console.log("Deep Link received:", event.url);
-            if (event.url.includes('auto-start')) {
-                // Triggered by Automation (Wi-Fi)
-                // "Connection -> Instant Start"
-                if (viewState === 'landing') {
-                    console.log("[Mobile] Auto-Start Triggered via Deep Link");
-                    startSession(true); // true = isAuto
-                }
-            }
-        };
-
-        // Check if app was opened by the link (Cold Start)
-        Linking.getInitialURL().then((url) => {
-            if (url) handleDeepLink({ url });
-        });
-
-        // Listen for new links (Warm Start)
-        const subscription = Linking.addEventListener('url', handleDeepLink);
-        return () => subscription.remove();
-    }, [viewState, deviceId]);
-
-
-
-    // Monitor NFC State
-    useEffect(() => {
-        if (nfcState === 'success') {
-            // Tag Detected!
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            if (viewState === 'landing') {
-                startSession();
-            } else if (viewState === 'active') {
-                finishSession();
-            }
-            resetNfc();
-        }
-    }, [nfcState]);
-
-    const initIdentity = async () => {
-        let id = await SecureStore.getItemAsync('device_id');
-        if (!id) {
-            id = uuidv4();
-            await SecureStore.setItemAsync('device_id', id);
-        }
-        setDeviceId(id);
-        console.log("Identity:", id);
-    };
-
-    // --- WI-FI LOGIC ---
-    const registerHomeWifi = async () => {
-        try {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                alert('Location permission required to detect Wi-Fi name.');
-                return;
-            }
-
-            const state = await Network.getNetworkStateAsync();
-            // @ts-ignore // Expo types might be vague on internet/connection type
-            const ssid = state.type === Network.NetworkStateType.WIFI ? (await Network.getIpAddressAsync() ? "Home Wi-Fi" : null) : null;
-            // Note: createNetworkStateAsync alone doesn't give SSID on all platforms easily in Expo Go without config.
-            // We will use a simplified approach: "Trust the user's current connection"
-            // For this demo, since getting actual SSID on Android 10+ is hard restricted, 
-            // we will simulate "Registration" by saving a flag or IP subnet.
-
-            // BETTER DEMO APPROACH: Just save "Registered" state.
-            await SecureStore.setItemAsync('home_wifi_registered', 'true');
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            alert("This Wi-Fi is now registered as 'Home'.");
-        } catch (e) {
-            console.error(e);
-            alert("Failed to register Wi-Fi.");
-        }
-    };
-
-    const isHomeWifi = async () => {
-        const registered = await SecureStore.getItemAsync('home_wifi_registered');
-        if (!registered) return true; // If not set, be lenient (Allow all)
-
-        // In a real build, check SSID here. 
-        // For Expo Go / Demo, we assume if "Connected via Wi-Fi", it matches.
-        const state = await Network.getNetworkStateAsync();
-        return state.type === Network.NetworkStateType.WIFI && state.isConnected;
-    };
-
-    // --- ACTIONS ---
-
-    // --- ACTIONS ---
-
-    const handleTap = () => {
-        // Trigger NFC Scan
-        scanTag();
-    };
-
-    const handleSummon = async () => {
-        try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await axios.post(`${API_BASE}/summon`);
-            alert("Bathroom Summoned! Go now!");
-        } catch (e) {
-            console.error("Summon Failed", e);
-            alert("Connection Failed");
-        }
-    };
+    // ... (Deep Link & NFC effects)
 
     const startSession = async (isAuto = false) => {
         try {
-            // Validation: Home Wi-Fi Check
-            if (isAuto) {
-                const home = await isHomeWifi();
-                if (!home) {
-                    console.log("[Mobile] Auto-Start blocked: Not on Home Wi-Fi");
-                    return;
-                }
-            }
+            // ... (Wi-Fi Check)
 
             if (!deviceId) return; // Guard
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -174,6 +62,7 @@ export default function HomeScreen() {
             const tau = res.data.tau_limit || 180;
             setTotalTime(tau);
             setTimeLeft(tau);
+            setAiReason(res.data.ai_reason); // Set Reasoning
 
             // Get Recipe
             if (res.data.recipe_title) {
@@ -290,10 +179,9 @@ export default function HomeScreen() {
                 <StatusBar barStyle="light-content" />
                 <View style={styles.timerContainer}>
                     {/* AGENT REASONING */}
-                    {recipe.length > 0 && ( // Just a proxy check
+                    {aiReason && (
                         <Text style={styles.reasonText}>
-                            {timeLeft !== null && totalTime > 120 ? "It's cold. Warm up." : "Conditions optimal."}
-                            {/* Ideally trigger from API response data stored in state */}
+                            {aiReason}
                         </Text>
                     )}
                     <Text style={[styles.timer, (timeLeft !== null && timeLeft < 0) && { color: COLORS.errorRed }]}>

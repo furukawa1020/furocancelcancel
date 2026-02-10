@@ -49,12 +49,14 @@ class BanditService {
     static async calculateEffectiveTau(userId, now = new Date()) {
         const stat = await this.getTau(userId);
         let tau = stat.tau_mu;
+        let reasoning = "Standard Routine.";
 
         const hour = now.getHours();
 
         // 1. Time Context: Morning Rush (6:00 - 10:00)
         if (hour >= 6 && hour < 10) {
             tau = tau * 0.8;
+            reasoning = "Morning Rush detected. Speed up.";
             console.log(`[Bandit] Context: Morning Rush. Tau scaled to ${tau}`);
         }
 
@@ -63,9 +65,11 @@ class BanditService {
         if (temp !== null) {
             if (temp < 10) {
                 tau = tau * 1.15; // +15% for Cold
+                reasoning = `It's freezing (${temp}°C). Take your time.`;
                 console.log(`[Bandit] Context: Cold (${temp}°C). Tau scaled to ${tau}`);
             } else if (temp > 30) {
                 tau = tau * 0.9; // -10% for Hot
+                reasoning = `It's sweltering (${temp}°C). Quick wash.`;
                 console.log(`[Bandit] Context: Hot (${temp}°C). Tau scaled to ${tau}`);
             }
         }
@@ -76,7 +80,7 @@ class BanditService {
         if (tau < 150) tau = 150;
         if (tau > 240) tau = 240;
 
-        return Math.round(tau);
+        return { tau: Math.round(tau), reasoning };
     }
 
     static async getOrCreateUser(deviceId) {

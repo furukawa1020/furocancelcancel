@@ -9,7 +9,7 @@ class SessionController {
 
             const user = await BanditService.getOrCreateUser(effDeviceId);
             // Use Contextual Bandit Logic
-            const tau = await BanditService.calculateEffectiveTau(user.id);
+            const { tau, reasoning } = await BanditService.calculateEffectiveTau(user.id);
             const recipe = await BanditService.selectRecipe(tau);
 
             const session = await Session.create({
@@ -20,7 +20,7 @@ class SessionController {
                 UserId: user.id
             });
 
-            res.json({ ...session.toJSON(), recipe_title: recipe.title });
+            res.json({ ...session.toJSON(), recipe_title: recipe.title, ai_reason: reasoning });
         } catch (e) {
             console.error(e);
             res.status(500).send("Error creating session");
