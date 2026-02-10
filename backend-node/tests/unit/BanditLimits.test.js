@@ -24,7 +24,9 @@ describe('BanditService Strict Limits', () => {
         const mockStat = { tau_mu: 100 }; // Legacy value
         BanditStat.findOne.mockResolvedValue(mockStat);
 
-        const tau = await BanditService.calculateEffectiveTau('u1');
+        // Pass Noon to avoid Morning logic
+        const noon = new Date('2026-02-10T12:00:00');
+        const tau = await BanditService.calculateEffectiveTau('u1', noon);
         expect(tau).toBe(150);
     });
 
@@ -32,7 +34,8 @@ describe('BanditService Strict Limits', () => {
         const mockStat = { tau_mu: 300 }; // Legacy value
         BanditStat.findOne.mockResolvedValue(mockStat);
 
-        const tau = await BanditService.calculateEffectiveTau('u1');
+        const noon = new Date('2026-02-10T12:00:00');
+        const tau = await BanditService.calculateEffectiveTau('u1', noon);
         expect(tau).toBe(240);
     });
 
@@ -40,7 +43,8 @@ describe('BanditService Strict Limits', () => {
         const mockStat = { tau_mu: 180 };
         BanditStat.findOne.mockResolvedValue(mockStat);
 
-        const tau = await BanditService.calculateEffectiveTau('u1');
+        const noon = new Date('2026-02-10T12:00:00');
+        const tau = await BanditService.calculateEffectiveTau('u1', noon);
         expect(tau).toBe(180);
     });
 });

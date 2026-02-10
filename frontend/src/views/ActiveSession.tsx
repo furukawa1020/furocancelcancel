@@ -62,7 +62,7 @@ const ActiveSession = () => {
             <header className="z-10 text-center animate-fade-in relative w-full">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                 <h1 className="text-xs tracking-[0.4em] opacity-40 font-mono mt-4">
-                    INTENTLESS BATH SYSTEM <span className="text-[#6366F1]">:: vFinal</span>
+                    INTENTLESS BATH <span className="text-[#6366F1]">:: 3-MIN COOKING MODE</span>
                 </h1>
             </header>
 
