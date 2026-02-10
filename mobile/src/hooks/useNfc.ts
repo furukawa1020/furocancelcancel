@@ -69,6 +69,8 @@ export function useNfc() {
             // Suppress the "null value" error which is common in Expo Go
             console.warn('NFC Scan Error (Handled):', ex);
             setNfcState('error');
+            // Backoff to prevent spamming
+            await new Promise(resolve => setTimeout(resolve, 2000));
         } finally {
             // Safely cancel
             NfcManager.cancelTechnologyRequest().catch(() => { });
