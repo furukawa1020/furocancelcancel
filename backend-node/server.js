@@ -142,8 +142,8 @@ async function initData() {
     }
 }
 
-const PORT = 3000;
-app.listen(PORT, async () => {
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', async () => {
     console.log(`Intentless Backend (Modular) running on port ${PORT}`);
     await initData();
 });
