@@ -14,7 +14,9 @@ import * as Linking from 'expo-linking';
 import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
-const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production Railway URL
+// Production Railway URL
+const API_BASE = 'https://furocancelcancel-production.up.railway.app';
+// const API_BASE = 'http://192.168.68.58:3000'; // Local Dev
 
 const { width } = Dimensions.get('window');
 
