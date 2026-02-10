@@ -30,8 +30,12 @@ export default function HistoryScreen({ onClose }: { onClose: () => void }) {
             const deviceId = await SecureStore.getItemAsync('device_id');
             const res = await axios.get(`${API_BASE}/history?device_id=${deviceId}`);
             setHistory(res.data.history);
-        } catch (e) {
-            console.error("Failed to load history", e);
+        } catch (e: any) {
+            if (e.response && e.response.status === 404) {
+                console.warn("History not found (404) - New User or Server Updating");
+            } else {
+                console.warn("Failed to load history", e);
+            }
         } finally {
             setLoading(false);
         }
