@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './views/Landing';
 import ActiveSession from './views/ActiveSession';
 import Done from './views/Done';
-import './app.css'; // Ensure base styles
+import './App.css'; // Ensure base styles
 
 function App() {
   return (
