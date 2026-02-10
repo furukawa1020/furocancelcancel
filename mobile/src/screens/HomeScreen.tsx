@@ -194,6 +194,13 @@ export default function HomeScreen() {
             <View style={styles.container}>
                 <StatusBar barStyle="light-content" />
                 <View style={styles.timerContainer}>
+                    {/* AGENT REASONING */}
+                    {recipe.length > 0 && ( // Just a proxy check
+                        <Text style={styles.reasonText}>
+                            {timeLeft !== null && totalTime > 120 ? "It's cold. Warm up." : "Conditions optimal."}
+                            {/* Ideally trigger from API response data stored in state */}
+                        </Text>
+                    )}
                     <Text style={styles.timer}>{timeLeft !== null ? formatTime(timeLeft) : "--:--"}</Text>
                 </View>
 

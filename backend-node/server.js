@@ -4,6 +4,8 @@ const app = express();
 const { sequelize, Recipe } = require('./src/models');
 
 const AgentService = require('./src/services/AgentService');
+const BanditBrain = require('./src/ai/BanditBrain');
+const WeatherService = require('./src/services/WeatherService');
 
 // Middleware
 app.use(cors());
@@ -86,8 +88,22 @@ app.post('/p/nfc/start', async (req, res) => {
         recipe_id: recipe ? recipe.id : null
     });
 
-    console.log(`[Agent] HOME_DETECTED (User ${user.id}). State -> RUNNING. Ends: ${ends_at.toISOString()}`);
-    res.json(session);
+    // Log Context for Learning Later
+
+    // OUTPUT: Explain the decision (Explainable AI)
+    // "Cold (8C) -> 3min"
+    // "Hot (32C) -> 1min"
+
+    console.log(`[Agent] HOME_DETECTED (User ${user.id}). Context: ${temp}°C. Action: ${tier}. State -> RUNNING.`);
+
+    res.json({
+        ...session.toJSON(),
+        context: {
+            temperature: temp,
+            decision: tier,
+            reason: temp < 10 ? "It's freezing outside." : (temp > 30 ? "It's scorching." : "Conditions are optimal.")
+        }
+    });
 });
 
 // 2. POLLING: GET STATE
