@@ -58,15 +58,20 @@ class AgentService {
             prob = 1.0;  // 00:00+: 100% (IMMEDIATE)
         }
 
-        // 2. Weather Multiplier
+        // 2. Weather Multiplier (Real Data)
         try {
             const temp = await WeatherService.getCurrentTemperature();
-            if (temp !== null && temp < 10) {
-                prob = prob * 1.5; // Cold? Get in now.
-                console.log(`[Agent] It's cold (${temp}C). Patience reduced.`);
+            if (temp !== null) {
+                if (temp < 10) {
+                    prob = prob * 2.0; // Cold? MUST BATH.
+                    console.log(`[Agent] It's cold (${temp}°C). Probability DOUBLED.`);
+                } else if (temp > 30) {
+                    prob = prob * 1.5; // Hot? Sweat. MUST BATH.
+                    console.log(`[Agent] It's hot (${temp}°C). Probability Boosted.`);
+                }
             }
         } catch (e) {
-            // Ignore weather error
+            console.warn("[Agent] Weather check failed, proceeding with base probability.");
         }
 
         // 3. Roll the Dice
