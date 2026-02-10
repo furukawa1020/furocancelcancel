@@ -36,7 +36,7 @@ export default function HomeScreen() {
 
     // Animation Values
     const breatheOpacity = useSharedValue(0.5);
-    const scale = useSharedValue(1); // Added
+    const scale = useSharedValue(1);
 
     useEffect(() => {
         breatheOpacity.value = withRepeat(
