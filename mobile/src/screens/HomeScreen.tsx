@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Dimensions, StatusBar, Animated, Easing } from 'react-native';
 import axios from 'axios';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
@@ -34,16 +33,27 @@ export default function HomeScreen() {
     const [newTau, setNewTau] = useState<number | null>(null);
     const [deviceId, setDeviceId] = useState<string | null>(null);
 
-    // Animation Values
-    const breatheOpacity = useSharedValue(0.5);
-    const scale = useSharedValue(1);
+    // Animation Values (Standard Animated API)
+    const breatheAnim = useRef(new Animated.Value(0.5)).current;
 
     useEffect(() => {
-        breatheOpacity.value = withRepeat(
-            withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-            -1,
-            true
-        );
+        // Continuous Breathing Animation
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(breatheAnim, {
+                    toValue: 1,
+                    duration: 3000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(breatheAnim, {
+                    toValue: 0.5,
+                    duration: 3000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
 
         // Init Identity
         initIdentity();
@@ -60,11 +70,6 @@ export default function HomeScreen() {
                 finishSession();
             }
             resetNfc();
-        } else if (nfcState === 'scanning') {
-            // Pulse animation faster?
-            scale.value = withRepeat(withTiming(1.1, { duration: 500 }), -1, true);
-        } else {
-            scale.value = withTiming(1);
         }
     }, [nfcState]);
 
@@ -73,122 +78,9 @@ export default function HomeScreen() {
         if (!id) {
             id = uuidv4();
             await SecureStore.setItemAsync('device_id', id);
-            // New User -> Could trigger Onboarding here
-            // For now, we just store it.
         }
         setDeviceId(id);
         console.log("Identity:", id);
-    };
-
-    const breatheStyle = useAnimatedStyle(() => {
-        return {
-            opacity: breatheOpacity.value,
-            transform: [{ scale: scale.value + (breatheOpacity.value - 0.5) * 0.1 }],
-        };
-    });
-
-    // --- ACTIONS ---
-
-    const handleTap = () => {
-        // Trigger NFC Scan
-        scanTag();
-    };
-
-    const handleSummon = async () => {
-        try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await axios.post(`${API_BASE}/summon`);
-            alert("Bathroom Summoned! Go now!");
-        } catch (e) {
-            console.error("Summon Failed", e);
-            alert("Connection Failed");
-        }
-    };
-
-    const startSession = async () => {
-        try {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            playKewpie();
-
-            const res = await axios.post(`${API_BASE}/sessions`, {
-                source: 'mobile_nfc',
-                device_id: deviceId
-            });
-
-            setSessionId(res.data.id);
-            const tau = res.data.tau_limit || 180;
-            setTotalTime(tau);
-            setTimeLeft(tau);
-
-            // Get Recipe
-            if (res.data.recipe_title) {
-                const detail = await axios.get(`${API_BASE}/sessions/${res.data.id}`);
-                if (detail.data.recipe) {
-                    setRecipe(JSON.parse(detail.data.recipe.steps_json));
-                }
-            } else {
-                const detail = await axios.get(`${API_BASE}/sessions/${res.data.id}`);
-                if (detail.data.recipe) {
-                    setRecipe(JSON.parse(detail.data.recipe.steps_json));
-                }
-            }
-
-            setViewState('active');
-        } catch (e) {
-            console.error("Start Failed", e);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        }
-    };
-
-    const finishSession = async () => {
-        if (!sessionId) return;
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            playHotaru();
-
-            // Mark done on backend
-            await axios.get(`${API_BASE}/p/nfc/done?sid=${sessionId}`);
-            setViewState('done');
-        } catch (e) {
-            console.error("Finish Failed", e);
-        }
-    };
-
-    const sendFeedback = async (rating: 'ok' | 'bad') => {
-        if (!sessionId) return;
-        try {
-            Haptics.selectionAsync();
-            const res = await axios.post(`${API_BASE}/sessions/${sessionId}/feedback`, { rating });
-            setNewTau(res.data.new_tau);
-        } catch (e) {
-            console.error("Feedback error", e);
-        }
-    };
-
-    // --- TIMERS ---
-
-    useEffect(() => {
-        if (viewState === 'active' && timeLeft !== null) {
-            const interval = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev !== null && prev <= 0) {
-                        clearInterval(interval);
-                        finishSession();
-                        return 0;
-                    }
-                    return (prev || 0) - 1;
-                });
-            }, 1000);
-            return () => clearInterval(interval);
-        }
-    }, [viewState, timeLeft]);
-
-    // --- RENDERERS ---
-
-    const formatTime = (s: number) => {
-        const min = Math.floor(s / 60);
-        const sec = s % 60;
-        return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
     if (viewState === 'onboarding') {
@@ -199,7 +91,7 @@ export default function HomeScreen() {
         return (
             <View style={styles.container}>
                 <StatusBar barStyle="light-content" />
-                <Animated.View style={[styles.centerContent, breatheStyle]}>
+                <Animated.View style={[styles.centerContent, { opacity: breatheAnim }]}>
                     <Text style={styles.label}>INTENTLESS BATH</Text>
                     <Pressable onPress={handleTap} style={styles.startButton}>
                         <Text style={styles.startText}>{nfcState === 'scanning' ? 'SCANNING...' : 'TAP TOWEL'}</Text>
