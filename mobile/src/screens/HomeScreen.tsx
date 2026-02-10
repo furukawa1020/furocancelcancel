@@ -268,6 +268,7 @@ export default function HomeScreen() {
                 <StatusBar barStyle="light-content" />
                 <View style={[styles.centerContent]}>
                     <Text style={styles.label}>INTENTLESS BATH</Text>
+                    <Text style={{ color: 'gray', fontSize: 10, marginBottom: 20 }}>v2.0 (Cloud)</Text>
                     <Pressable onPress={handleTap} style={styles.startButton}>
                         <Text style={styles.startText}>{nfcState === 'scanning' ? 'SCANNING...' : 'TAP TOWEL'}</Text>
                     </Pressable>
