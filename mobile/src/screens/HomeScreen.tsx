@@ -174,9 +174,17 @@ export default function HomeScreen() {
             }
 
             setViewState('active');
-        } catch (e) {
+            setViewState('active');
+        } catch (e: any) {
             console.error("Start Failed", e);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+            // Show Feedback to User
+            if (e.response && e.response.status === 404) {
+                alert("Backend Updating... Please wait 1 min.");
+            } else {
+                alert("Connection Failed. Check Server.");
+            }
         }
     };
 
