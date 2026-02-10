@@ -1,8 +1,39 @@
-const app = require('./src/app');
+const express = require('express');
+const cors = require('cors');
+const app = express();
 const { sequelize, Recipe } = require('./src/models');
 
-// --- INIT ---
-const initData = async () => {
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// In-Memory Summon State (Simple flag)
+let isSummoning = false;
+
+// --- ROUTES ---
+
+// 0. SUMMON (The Sofa Trigger)
+app.post('/summon', (req, res) => {
+    isSummoning = true;
+    console.log("[Summon] THE SIREN IS ACTIVE. LURING USER...");
+
+    // Auto-reset after 30 seconds (to stop the siren if ignored)
+    setTimeout(() => { isSummoning = false; }, 30000);
+
+    res.json({ status: 'summoning' });
+});
+
+app.get('/summon/status', (req, res) => {
+    res.json({ isSummoning });
+});
+
+app.post('/summon/stop', (req, res) => {
+    isSummoning = false;
+    res.json({ status: 'stopped' });
+});
+
+// 1. SESSIONS
+app.post('/sessions', async (req, res) => {
     // SQLite Workaround for Alter Table with Foreign Keys
     try {
         await sequelize.query('PRAGMA foreign_keys = OFF;');
@@ -55,7 +86,7 @@ const initData = async () => {
         });
     }
     console.log("Database initialized with Intentless Engine & Dynamic Recipes.");
-};
+});
 
 const PORT = 3000;
 app.listen(PORT, async () => {

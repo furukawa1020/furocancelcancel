@@ -92,8 +92,17 @@ export default function HomeScreen() {
     const handleTap = () => {
         // Trigger NFC Scan
         scanTag();
-        // Fallback for Simulator (Long Press could be added, but for now just direct)
-        // startSession(); // UNCOMMENT FOR SIMULATOR ONLY if NFC fails
+    };
+
+    const handleSummon = async () => {
+        try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await axios.post(`${API_BASE}/summon`);
+            alert("Bathroom Summoned! Go now!");
+        } catch (e) {
+            console.error("Summon Failed", e);
+            alert("Connection Failed");
+        }
     };
 
     const startSession = async () => {
@@ -195,6 +204,11 @@ export default function HomeScreen() {
                     <Pressable onPress={handleTap} style={styles.startButton}>
                         <Text style={styles.startText}>{nfcState === 'scanning' ? 'SCANNING...' : 'TAP TOWEL'}</Text>
                     </Pressable>
+
+                    {/* SOS / SUMMON BUTTON */}
+                    <Pressable onPress={handleSummon} style={styles.summonButton}>
+                        <Text style={styles.summonText}>SUMMON BATHROOM</Text>
+                    </Pressable>
                 </Animated.View>
             </View>
         );
@@ -286,6 +300,21 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.accentIndigo,
         borderRadius: 0,
+    },
+    summonButton: {
+        marginTop: 40,
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        backgroundColor: 'rgba(244, 63, 94, 0.2)', // Red tint
+        borderWidth: 1,
+        borderColor: COLORS.errorRed,
+        borderRadius: 0,
+    },
+    summonText: {
+        color: COLORS.errorRed,
+        fontSize: 14,
+        letterSpacing: 2,
+        fontWeight: 'bold',
     },
     startText: {
         color: COLORS.textMain,

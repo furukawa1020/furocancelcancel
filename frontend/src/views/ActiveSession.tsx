@@ -5,12 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ActiveSession = () => {
     const { playKewpie, isLocked } = useAudioContext();
-    const { timeLeft, totalTime, recipe, recipeTitle, formatTime } = useIntentlessSession();
+    const { timeLeft, totalTime, recipe, recipeTitle, formatTime, isSummoning } = useIntentlessSession();
 
     // AUDIO: Attempt Autoplay
     useEffect(() => {
         if (!isLocked) playKewpie();
     }, [isLocked]);
+
+    // SUMMON: Trigger Audio if Summoning
+    useEffect(() => {
+        if (isSummoning && !isLocked) {
+            playKewpie();
+        }
+    }, [isSummoning, isLocked, playKewpie]);
 
     // Calculate progress for visuals (if needed later, else remove)
     // const progress = timeLeft !== null ? (timeLeft / totalTime) : 1;

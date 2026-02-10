@@ -15,6 +15,7 @@ export const useIntentlessSession = () => {
     const [recipe, setRecipe] = useState<Step[]>([]);
     const [recipeTitle, setRecipeTitle] = useState("Loading...");
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isSummoning, setIsSummoning] = useState(false);
     const navigate = useNavigate();
 
     // START: Session Initialization
@@ -80,6 +81,17 @@ export const useIntentlessSession = () => {
         };
     }, [timeLeft, sessionId, navigate]);
 
+    // SUMMON POLLER
+    useEffect(() => {
+        const summonPoller = setInterval(async () => {
+            try {
+                const res = await axios.get(`${API_BASE}/summon/status`);
+                setIsSummoning(res.data.isSummoning);
+            } catch (e) { }
+        }, 3000);
+        return () => clearInterval(summonPoller);
+    }, []);
+
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
@@ -95,6 +107,7 @@ export const useIntentlessSession = () => {
         recipeTitle,
         sessionId,
         formatTime,
-        progress
+        progress,
+        isSummoning
     };
 };
