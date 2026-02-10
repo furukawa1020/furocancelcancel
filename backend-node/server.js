@@ -1,14 +1,5 @@
-const express = require('express');
-const cors = require('cors');
+const app = require('./src/app');
 const { sequelize, Recipe } = require('./src/models');
-const apiRoutes = require('./src/routes/api');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// --- ROUTES ---
-app.use('/', apiRoutes);
 
 // --- INIT ---
 const initData = async () => {
