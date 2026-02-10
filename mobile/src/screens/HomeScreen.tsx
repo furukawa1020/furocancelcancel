@@ -146,11 +146,7 @@ export default function HomeScreen() {
         if (viewState === 'active' && timeLeft !== null) {
             const interval = setInterval(() => {
                 setTimeLeft((prev) => {
-                    if (prev !== null && prev <= 0) {
-                        clearInterval(interval);
-                        finishSession();
-                        return 0;
-                    }
+                    // OVERTIME MODE: Just keep counting down (negative)
                     return (prev || 0) - 1;
                 });
             }, 1000);
@@ -201,7 +197,10 @@ export default function HomeScreen() {
                             {/* Ideally trigger from API response data stored in state */}
                         </Text>
                     )}
-                    <Text style={styles.timer}>{timeLeft !== null ? formatTime(timeLeft) : "--:--"}</Text>
+                    <Text style={[styles.timer, (timeLeft !== null && timeLeft < 0) && { color: COLORS.errorRed }]}>
+                        {timeLeft !== null ? formatTime(Math.abs(timeLeft)) : "--:--"}
+                    </Text>
+                    {(timeLeft !== null && timeLeft < 0) && <Text style={{ color: COLORS.errorRed, fontWeight: 'bold', marginTop: -20 }}>OVERTIME</Text>}
                 </View>
 
                 <View style={styles.recipeContainer}>
@@ -307,6 +306,13 @@ const styles = StyleSheet.create({
     timerContainer: {
         marginTop: 60,
         marginBottom: 40,
+        alignItems: 'center',
+    },
+    reasonText: {
+        color: COLORS.accentIndigo,
+        fontSize: 14,
+        marginBottom: 10,
+        letterSpacing: 1,
     },
     timer: {
         fontSize: 80,
@@ -316,6 +322,7 @@ const styles = StyleSheet.create({
         textShadowColor: COLORS.accentGlow,
         textShadowRadius: 20,
     },
+    // ... (rest is fine)
     recipeContainer: {
         width: '100%',
         padding: SPACING.md,

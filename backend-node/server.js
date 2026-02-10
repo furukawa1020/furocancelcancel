@@ -128,16 +128,14 @@ app.get('/sessions/current', async (req, res) => {
     if (session.status === 'running') {
         const now = new Date();
         if (now > session.ends_at) {
-            // Event: TIMER_EXPIRED
-            console.log(`[Agent] Session ${session.id} TIMER_EXPIRED.`);
-            session.status = 'completed';
-            session.finished_at = session.ends_at;
-            await session.save();
+            // Event: OVERTIME
+            // We DO NOT complete. We let it run.
+            // console.log(`[Agent] Session ${session.id} is in OVERTIME.`);
         }
     }
 
     // Return logic
-    // If completed long ago (> 1 hour), probably IDLE now.
+    // If completed long ago (> 1 hour), probably IDLE now. (Keep this cleanup)
     const now = new Date();
     if (session.status !== 'running' && (now - new Date(session.updatedAt) > 3600000)) {
         return res.json({ status: 'idle' });
@@ -169,10 +167,36 @@ app.post('/p/nfc/done', async (req, res) => {
     session.status = 'completed';
     session.finished_at = new Date();
     session.proof_state = 'done'; // Legacy/Extra log
+
+    // CALCULATE DURATION & OVERTIME
+    const duration = (session.finished_at - new Date(session.started_at)) / 1000;
+    const overtime = duration - session.tau_limit;
+
     await session.save();
 
     console.log(`[Agent] DONE_PROOF received. Session ${session.id} COMPLETED.`);
-    res.json(session);
+    console.log(`[Agent] Duration: ${duration.toFixed(1)}s (Limit: ${session.tau_limit}s). Overtime: ${overtime.toFixed(1)}s`);
+
+    // LEARNING FROM OVERTIME (Implicit Feedback)
+    if (overtime > 10) { // Tolerance of 10s
+        console.log(`[AI] OVERTIME DETECTED (>10s). Applying Penalty.`);
+
+        // Context Recovery
+        const currentTemp = session.context_temp || 20; // Needs context saved, but approximating
+        const recipe = await Recipe.findByPk(session.recipe_id);
+        const action = recipe ? recipe.tier : '3min';
+
+        // Reward = -0.5 (Not full bad, but not good) -> Or -1.0 if strict
+        BanditBrain.learn(currentTemp, action, -1.0);
+
+        // Also downgrade user tier if repeated?
+        if (user.current_tier === '3min') user.current_tier = '2min';
+        else if (user.current_tier === '2min') user.current_tier = '1min';
+        await user.save();
+        console.log(`[Agent] User downgraded to ${user.current_tier} due to Overtime.`);
+    }
+
+    res.json({ ...session.toJSON(), overtime });
 });
 
 // 4. FEEDBACK (Learning)
