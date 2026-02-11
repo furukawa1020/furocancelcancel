@@ -110,12 +110,10 @@ export default function HomeScreen() {
             try {
                 const res = await axios.get(`${API_BASE}/summon/status`);
                 if (res.data.isSummoning) {
-                    if (viewState !== 'summoned') {
-                        console.log("THE TYRANT IS HERE.");
-                        setViewState('summoned');
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                        playHotaru(); // ALARM SOUND
-                    }
+                    console.log("THE TYRANT IS HERE.");
+                    setViewState('summoned');
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    playHotaru(); // ALARM SOUND
                 }
             } catch (e) {
                 // Silent fail on polling
