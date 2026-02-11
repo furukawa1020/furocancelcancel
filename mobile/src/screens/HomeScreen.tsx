@@ -39,6 +39,7 @@ export default function HomeScreen() {
     const [newTau, setNewTau] = useState<number | null>(null);
     const [deviceId, setDeviceId] = useState<string | null>(null);
     const [aiReason, setAiReason] = useState<string | null>(null); // Added
+    const [shameTimer, setShameTimer] = useState(30); // 30 seconds to comply
 
     useEffect(() => {
         // Init Identity
@@ -112,6 +113,7 @@ export default function HomeScreen() {
                 if (res.data.isSummoning) {
                     console.log("THE TYRANT IS HERE.");
                     setViewState('summoned');
+                    setShameTimer(30); // START COUNTDOWN
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     playHotaru(); // ALARM SOUND
                 }
@@ -295,6 +297,21 @@ export default function HomeScreen() {
         }
     }, [viewState, timeLeft]);
 
+    // --- SHAME TIMER (Social Guillotine) ---
+    useEffect(() => {
+        if (viewState === 'summoned' && shameTimer > 0) {
+            const interval = setInterval(() => {
+                setShameTimer((prev) => prev - 1);
+            }, 1000);
+            return () => clearInterval(interval);
+        } else if (viewState === 'summoned' && shameTimer === 0) {
+            // EXECUTE SOCIAL SANCTION
+            const text = encodeURIComponent("I am ignoring my bath to play on my phone. Someone scold me. #IntentlessBath");
+            Linking.openURL(`https://twitter.com/intent/tweet?text=${text}`);
+            setShameTimer(10); // Loop the shame every 10s until they comply
+        }
+    }, [viewState, shameTimer]);
+
     // --- RENDERERS ---
 
     const formatTime = (s: number) => {
@@ -314,7 +331,14 @@ export default function HomeScreen() {
                 <View style={styles.centerContent}>
                     <Text style={[styles.label, { color: 'white', fontWeight: 'bold', fontSize: 24 }]}>THE TYRANT</Text>
                     <Text style={[styles.doneTitle, { fontSize: 40, textAlign: 'center' }]}>TIME TO BATH</Text>
-                    <Text style={{ color: 'white', marginBottom: 40 }}>Resistance is futile.</Text>
+                    <Text style={{ color: 'white', marginBottom: 10 }}>Resistance is futile.</Text>
+
+                    <Text style={{ color: COLORS.errorRed, fontSize: 60, fontWeight: 'bold', backgroundColor: 'black', padding: 10 }}>
+                        {shameTimer}
+                    </Text>
+                    <Text style={{ color: 'white', marginBottom: 40, textAlign: 'center' }}>
+                        Social Guillotine dropping in...
+                    </Text>
 
                     <Pressable onPress={handleTap} style={[styles.startButton, { borderColor: 'white', backgroundColor: 'rgba(0,0,0,0.2)' }]}>
                         <Text style={[styles.startText, { color: 'white' }]}>{nfcState === 'scanning' ? 'SCANNING...' : 'OBEY (TAP TOWEL)'}</Text>
