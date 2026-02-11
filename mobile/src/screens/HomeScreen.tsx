@@ -292,6 +292,11 @@ export default function HomeScreen() {
                             Tap to secure your home perimeter.
                         </Text>
                     </Pressable>
+
+                    {/* DEBUG START BUTTON */}
+                    <Pressable onPress={() => startSession(false)} style={{ position: 'absolute', bottom: -100, left: 0, padding: 10, backgroundColor: 'blue', opacity: 0.5 }}>
+                        <Text style={{ color: 'white', fontWeight: 'bold' }}>DEBUG START</Text>
+                    </Pressable>
                 </View>
             </View>
         );
