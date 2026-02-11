@@ -49,13 +49,24 @@ export default function HomeScreen() {
     // URL: intentless-bath://auto-start
     useEffect(() => {
         const handleDeepLink = (event: { url: string }) => {
-            console.log("Deep Link received:", event.url);
+            console.log("Deep Link received Raw:", event.url);
+
             if (event.url.includes('auto-start')) {
                 // Triggered by Automation (Wi-Fi)
                 // "Connection -> Instant Start"
                 if (viewState === 'landing') {
-                    console.log("[Mobile] Auto-Start Triggered via Deep Link");
+                    console.log("[Mobile] Auto-Start MATCHED! Starting Session...");
+                    alert("[Debug] Auto-Start Triggered!"); // Visible Feedback
                     startSession(true); // true = isAuto
+                } else {
+                    console.log("[Mobile] Auto-Start Ignored: Not on Landing Screen.");
+                }
+            } else {
+                console.log("[Mobile] Link Ignored: URL does not contain 'auto-start'");
+                // Feedback for user debugging
+                if (viewState === 'landing') {
+                    // Only alert if we think they MIGHT have tried (e.g. contains exp)
+                    alert(`Debug: Link received but NO 'auto-start'.\nURL: ${event.url}`);
                 }
             }
         };

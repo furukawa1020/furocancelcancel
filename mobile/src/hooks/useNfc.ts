@@ -10,12 +10,17 @@ export function useNfc() {
 
     useEffect(() => {
         async function checkNfc() {
-            const supported = await NfcManager.isSupported();
-            if (!supported) {
+            // Expo Go Check (Simple heuristic or Constants)
+            // Constants.appOwnership is reliable but needs install.
+            // We'll just use the try-catch failure as the signal or a flag.
+
+            // However, to stop the SPAM in the logs:
+            try {
+                await NfcManager.start();
+            } catch (e) {
+                console.log("NFC Start Failed (Likely Expo Go): Disabling NFC.");
                 setNfcState('unsupported');
-                return;
             }
-            await NfcManager.start();
         }
         checkNfc();
 
