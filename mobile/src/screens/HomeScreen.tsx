@@ -25,7 +25,7 @@ interface Step {
     time: number;
     text: string;
 }
-type ViewState = 'landing' | 'active' | 'done' | 'onboarding' | 'history';
+type ViewState = 'landing' | 'active' | 'done' | 'onboarding' | 'history' | 'summoned';
 
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
