@@ -94,10 +94,37 @@ export default function HomeScreen() {
                 startSession();
             } else if (viewState === 'active') {
                 finishSession();
+            } else if (viewState === 'summoned') {
+                acceptSummon();
             }
             resetNfc();
         }
     }, [nfcState]);
+
+    // --- TYRANT POLLING ---
+    useEffect(() => {
+        const pollTyrant = async () => {
+            // Only poll if we are idling on landing or history (not active)
+            if (viewState !== 'landing' && viewState !== 'history') return;
+
+            try {
+                const res = await axios.get(`${API_BASE}/summon/status`);
+                if (res.data.isSummoning) {
+                    if (viewState !== 'summoned') {
+                        console.log("THE TYRANT IS HERE.");
+                        setViewState('summoned');
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                        playHotaru(); // ALARM SOUND
+                    }
+                }
+            } catch (e) {
+                // Silent fail on polling
+            }
+        };
+
+        const interval = setInterval(pollTyrant, 10000); // Check every 10s
+        return () => clearInterval(interval);
+    }, [viewState]);
 
     const initIdentity = async () => {
         let id = await SecureStore.getItemAsync('device_id');
@@ -155,6 +182,19 @@ export default function HomeScreen() {
         } catch (e) {
             console.error("Summon Failed", e);
             alert("Connection Failed");
+        }
+    };
+
+    const acceptSummon = async () => {
+        try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            // 1. Tell Server we obeyed
+            await axios.post(`${API_BASE}/summon/stop`);
+            // 2. Start Bath
+            startSession();
+        } catch (e) {
+            console.error("Accept Failed", e);
+            startSession(); // Try anyway
         }
     };
 
@@ -267,6 +307,28 @@ export default function HomeScreen() {
 
     if (viewState === 'onboarding') {
         return <OnboardingScreen onComplete={() => setViewState('landing')} />;
+    }
+
+    if (viewState === 'summoned') {
+        return (
+            <View style={[styles.container, { backgroundColor: COLORS.errorRed }]}>
+                <StatusBar barStyle="light-content" />
+                <View style={styles.centerContent}>
+                    <Text style={[styles.label, { color: 'white', fontWeight: 'bold', fontSize: 24 }]}>THE TYRANT</Text>
+                    <Text style={[styles.doneTitle, { fontSize: 40, textAlign: 'center' }]}>TIME TO BATH</Text>
+                    <Text style={{ color: 'white', marginBottom: 40 }}>Resistance is futile.</Text>
+
+                    <Pressable onPress={handleTap} style={[styles.startButton, { borderColor: 'white', backgroundColor: 'rgba(0,0,0,0.2)' }]}>
+                        <Text style={[styles.startText, { color: 'white' }]}>{nfcState === 'scanning' ? 'SCANNING...' : 'OBEY (TAP TOWEL)'}</Text>
+                    </Pressable>
+
+                    {/* DEBUG OBEY */}
+                    <Pressable onPress={acceptSummon} style={{ position: 'absolute', bottom: -100, padding: 10, backgroundColor: 'black', opacity: 0.5 }}>
+                        <Text style={{ color: 'white', fontWeight: 'bold' }}>DEBUG OBEY</Text>
+                    </Pressable>
+                </View>
+            </View>
+        );
     }
 
     if (viewState === 'history') {
