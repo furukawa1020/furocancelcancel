@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  device_id: MyString
+  current_tier: MyString
+  has_sessions: false
+
+two:
+  device_id: MyString
+  current_tier: MyString
+  has_sessions: false

@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  status: MyString
+  started_at: 2026-02-13 02:45:41
+  ends_at: 2026-02-13 02:45:41
+  finished_at: 2026-02-13 02:45:41
+  proof_type: MyString
+  feedback: MyString
+  recipe_id: 1
+
+two:
+  user: two
+  status: MyString
+  started_at: 2026-02-13 02:45:41
+  ends_at: 2026-02-13 02:45:41
+  finished_at: 2026-02-13 02:45:41
+  proof_type: MyString
+  feedback: MyString
+  recipe_id: 1
