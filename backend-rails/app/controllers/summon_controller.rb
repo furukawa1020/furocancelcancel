@@ -5,7 +5,10 @@ class SummonController < ApplicationController
   end
 
   def status
-    render json: { isSummoning: AgentService.instance.is_summoning }
+    render json: { 
+      isSummoning: AgentService.instance.is_summoning,
+      shameMessage: AgentService.instance.current_shame_message
+    }
   end
 
   def stop
