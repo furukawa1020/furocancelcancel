@@ -14,6 +14,7 @@ import * as Linking from 'expo-linking';
 import * as Speech from 'expo-speech'; // Voice of the Tyrant
 import { Animated } from 'react-native'; // For Shake
 import { useGlitch } from '../hooks/useGlitch'; // Visual Domination
+import { useUndyingNotification } from '../hooks/useUndyingNotification'; // Phase 3
 import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
@@ -33,9 +34,11 @@ type ViewState = 'landing' | 'active' | 'done' | 'onboarding' | 'history' | 'sum
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
     const { scanTag, nfcState, resetNfc } = useNfc();
-    const { shakeAnim, isGlitching, triggerGlitch } = useGlitch(); // Added // Added
+    const { shakeAnim, isGlitching, triggerGlitch } = useGlitch();
 
+    // Phase 3: The Undying Notification
     const [viewState, setViewState] = useState<ViewState>('landing');
+    useUndyingNotification(viewState === 'summoned');
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [totalTime, setTotalTime] = useState(180);
     const [recipe, setRecipe] = useState<Step[]>([]);
