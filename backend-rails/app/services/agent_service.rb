@@ -50,51 +50,50 @@ class AgentService
 
     now = Time.now
     hour = now.hour
-    prob = 0.0
 
-    if hour < 18
-      prob = 0.0
-    elsif hour < 20
-      prob = 0.05
-    elsif hour < 22
-      prob = 0.15
-    elsif hour < 24
-      prob = 0.40
-    else
-      prob = 1.0
-    end
-
-    # Weather Multiplier
+    # === THE AI BRAIN ===
+    # Gather Context
     temp = WeatherService.get_current_temperature
-    if temp
-      if temp < 10
-        prob *= 2.0
-        puts "[Agent] Cold boost."
-      elsif temp > 30
-        prob *= 1.5
-        puts "[Agent] Hot boost."
-      end
-    end
+    user = User.first # In production, this would be context-specific
+    streak = user&.bandit_stat&.current_streak || 0
+    last_bath = user&.bandit_stat&.last_bath_at
+    last_bath_hours_ago = last_bath ? ((now - last_bath) / 3600.0) : 999
 
-    roll = rand
-    should_summon = roll < prob
+    context = {
+      hour: hour,
+      temp: temp,
+      streak: streak,
+      last_bath_hours_ago: last_bath_hours_ago
+    }
+
+    # Calculate Emotional State
+    emotions = UtilityCalculator.calculate(context)
     
-    puts "[Agent] Tick #{hour}:00. Roll: #{roll.round(2)} < Prob: #{prob.round(2)} ? #{should_summon}"
+    puts "[Agent] Tick #{hour}:00 | Anger: #{emotions[:anger].round(2)}, Urgency: #{emotions[:urgency].round(2)}, Mercy: #{emotions[:mercy].round(2)}"
+
+    # Decision: Should we summon?
+    # Use Anger as threshold (with randomness for unpredictability)
+    roll = rand
+    threshold = emotions[:anger] * 0.9 # Slightly reduce to avoid constant summoning
+    should_summon = roll < threshold && hour >= 18
 
     if should_summon
-      puts "[Agent] DECISION: SUMMON USER NOW."
+      puts "[Agent] DECISION: SUMMON USER. (Roll: #{roll.round(2)} < Threshold: #{threshold.round(2)})"
       @is_summoning = true
       
-      # Generate Dynamic Shame
-      if temp && temp < 10
-        @current_shame_message = "It is freezing (#{temp}C) and I refuse to warm up. I choose to suffer. #IntentlessBath"
-      elsif hour >= 23
-        @current_shame_message = "It is past 11PM and I am doomscrolling instead of bathing. Help me. #IntentlessBath"
-      else
-        @current_shame_message = "I am ignoring the Tyrant. My hygiene is optional. #IntentlessBath"
-      end
+      # Generate AI Messages
+      summon_message = DialogueGenerator.generate(emotions, context)
+      @current_shame_message = DialogueGenerator.generate_shame(emotions, context)
+      
+      puts "[Agent] Message: \"#{summon_message}\""
+      
+      # Store for API (we could add a field for this)
+      # For now, shame_message is what mobile polls
+    else
+      puts "[Agent] No summon. (Roll: #{roll.round(2)} >= Threshold: #{threshold.round(2)})"
     end
   rescue => e
     puts "[Agent] Error in tick: #{e.message}"
+    puts e.backtrace.first(5).join("\n")
   end
 end
