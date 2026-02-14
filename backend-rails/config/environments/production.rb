@@ -1,5 +1,6 @@
 require "active_support/core_ext/integer/time"
 
+Rails.application.configure do
   # Hosts
   config.hosts << "furocancelcancel.railway.internal"
   config.hosts << ".railway.app"
