@@ -15,6 +15,7 @@ import * as Speech from 'expo-speech'; // Voice of the Tyrant
 import { Animated } from 'react-native'; // For Shake
 import { useGlitch } from '../hooks/useGlitch'; // Visual Domination
 import { useUndyingNotification } from '../hooks/useUndyingNotification'; // Phase 3
+import { usePsychologicalWarfare } from '../hooks/usePsychologicalWarfare'; // Phase 3+
 import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
@@ -36,9 +37,10 @@ export default function HomeScreen() {
     const { scanTag, nfcState, resetNfc } = useNfc();
     const { shakeAnim, isGlitching, triggerGlitch } = useGlitch();
 
-    // Phase 3: The Undying Notification
+    // Phase 3: The Undying Notification & Psychological Warfare
     const [viewState, setViewState] = useState<ViewState>('landing');
     useUndyingNotification(viewState === 'summoned');
+    usePsychologicalWarfare(viewState === 'summoned');
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [totalTime, setTotalTime] = useState(180);
     const [recipe, setRecipe] = useState<Step[]>([]);
