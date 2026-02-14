@@ -52,8 +52,32 @@ class BanditService
     # Clamp
     new_tau = 150 if new_tau < 150
     new_tau = 240 if new_tau > 240
-
-    stat.update(tau_mu: new_tau)
+    
+    # Streak Logic
+    now = Time.now
+    last_bath = stat.last_bath_at
+    
+    if last_bath
+      hours_since = (now - last_bath) / 3600.0
+      
+      if hours_since < 12
+        # Same day/session (ignore streak update)
+      elsif hours_since < 36 
+        # Approx 1 day later (Continuity)
+        stat.current_streak = (stat.current_streak || 0) + 1
+      else
+        # Broken Streak
+        stat.current_streak = 1
+      end
+    else
+      # First bath
+      stat.current_streak = 1
+    end
+    
+    stat.last_bath_at = now
+    stat.tau_mu = new_tau
+    stat.save
+    
     new_tau
   end
 
@@ -86,8 +110,14 @@ class BanditService
     # 3. Clamp
     tau = 150 if tau < 150
     tau = 240 if tau > 240
+    
+    # 4. Streak Bonus (Reasoning only for now)
+    streak = stat.current_streak || 0
+    if streak >= 3
+      reasoning += " Streak: #{streak} days! Keep it up."
+    end
 
-    { tau: tau.round, reasoning: reasoning }
+    { tau: tau.round, reasoning: reasoning, streak: streak }
   end
 
   def self.get_or_create_user(device_id)

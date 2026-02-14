@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_12_174551) do
+ActiveRecord::Schema[7.1].define(version: 2026_02_14_001632) do
   create_table "bandit_stats", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "context"
@@ -19,6 +19,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_12_174551) do
     t.integer "beta"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "tau_mu"
+    t.integer "current_streak"
+    t.datetime "last_bath_at"
     t.index ["user_id"], name: "index_bandit_stats_on_user_id"
   end
 
@@ -42,6 +45,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_12_174551) do
     t.integer "recipe_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "tau_limit"
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
