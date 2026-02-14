@@ -12,6 +12,8 @@ import * as Network from 'expo-network';
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
 import * as Speech from 'expo-speech'; // Voice of the Tyrant
+import { Animated } from 'react-native'; // For Shake
+import { useGlitch } from '../hooks/useGlitch'; // Visual Domination
 import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
@@ -30,7 +32,8 @@ type ViewState = 'landing' | 'active' | 'done' | 'onboarding' | 'history' | 'sum
 
 export default function HomeScreen() {
     const { playKewpie, playHotaru, audioState } = useNativeAudio();
-    const { scanTag, nfcState, resetNfc } = useNfc(); // Added
+    const { scanTag, nfcState, resetNfc } = useNfc();
+    const { shakeAnim, isGlitching, triggerGlitch } = useGlitch(); // Added // Added
 
     const [viewState, setViewState] = useState<ViewState>('landing');
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -123,12 +126,17 @@ export default function HomeScreen() {
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     playHotaru(); // ALARM SOUND
 
+                    // === VISUAL DOMINATION ===
+                    if (res.data.anger && res.data.anger > 0.3) {
+                        triggerGlitch(res.data.anger);
+                    }
+
                     // === THE VOICE ===
                     if (res.data.summonMessage) {
                         Speech.speak(res.data.summonMessage, {
                             language: 'en-US',
-                            pitch: 0.8, // Lower pitch = More menacing
-                            rate: 1.1,  // Slightly faster = Urgent
+                            pitch: res.data.anger ? 1.0 - (res.data.anger * 0.4) : 0.8, // Angry = Lower Pitch
+                            rate: res.data.anger ? 1.0 + (res.data.anger * 0.3) : 1.1, // Angry = Faster
                         });
                     }
                 }
@@ -342,7 +350,13 @@ export default function HomeScreen() {
 
     if (viewState === 'summoned') {
         return (
-            <View style={[styles.container, { backgroundColor: COLORS.errorRed }]}>
+            <Animated.View style={[
+                styles.container,
+                {
+                    backgroundColor: isGlitching ? 'black' : COLORS.errorRed, // Glitch flickers black
+                    transform: [{ translateX: shakeAnim }] // Screen Shake
+                }
+            ]}>
                 <StatusBar barStyle="light-content" />
                 <View style={styles.centerContent}>
                     <Text style={[styles.label, { color: 'white', fontWeight: 'bold', fontSize: 24 }]}>THE TYRANT</Text>
