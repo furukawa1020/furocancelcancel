@@ -11,6 +11,7 @@ import { COLORS, FONTS, SPACING } from '../constants/theme';
 import * as Network from 'expo-network';
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
+import * as Speech from 'expo-speech'; // Voice of the Tyrant
 import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
@@ -104,6 +105,7 @@ export default function HomeScreen() {
     }, [nfcState]);
 
     // --- TYRANT POLLING ---
+    // --- TYRANT POLLING ---
     useEffect(() => {
         const pollTyrant = async () => {
             // Only poll if we are idling on landing or history (not active)
@@ -114,12 +116,21 @@ export default function HomeScreen() {
                 if (res.data.isSummoning) {
                     console.log("THE TYRANT IS HERE.");
                     setViewState('summoned');
-                    if (res.data.shameMessage) {
-                        setShameMessage(res.data.shameMessage);
-                    }
+                    if (res.data.shameMessage) setShameMessage(res.data.shameMessage);
+
                     if (shameTimer <= 0) setShameTimer(30); // Reset only if ended
+
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     playHotaru(); // ALARM SOUND
+
+                    // === THE VOICE ===
+                    if (res.data.summonMessage) {
+                        Speech.speak(res.data.summonMessage, {
+                            language: 'en-US',
+                            pitch: 0.8, // Lower pitch = More menacing
+                            rate: 1.1,  // Slightly faster = Urgent
+                        });
+                    }
                 }
             } catch (e) {
                 // Silent fail on polling
@@ -192,6 +203,7 @@ export default function HomeScreen() {
     const acceptSummon = async () => {
         try {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Speech.stop(); // SHUT UP
             // 1. Tell Server we obeyed
             await axios.post(`${API_BASE}/summon/stop`);
             // 2. Start Bath
