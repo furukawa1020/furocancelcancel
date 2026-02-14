@@ -15,8 +15,8 @@ import OnboardingScreen from './OnboardingScreen'; // New Import
 import HistoryScreen from './HistoryScreen'; // New Import
 
 // Production Railway URL
-const API_BASE = 'https://furocancelcancel-production.up.railway.app';
-// const API_BASE = 'http://192.168.68.58:3000'; // Local Dev
+const API_BASE = 'http://192.168.68.59:8081'; // Local Rails
+// const API_BASE = 'https://furocancelcancel-production.up.railway.app'; // Production
 
 const { width } = Dimensions.get('window');
 
