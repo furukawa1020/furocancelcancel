@@ -8,7 +8,8 @@ class SummonController < ApplicationController
     render json: { 
       isSummoning: AgentService.instance.is_summoning,
       shameMessage: AgentService.instance.current_shame_message,
-      summonMessage: AgentService.instance.current_summon_message
+      summonMessage: AgentService.instance.current_summon_message,
+      anger: AgentService.instance.current_anger
     }
   end
 

@@ -1,12 +1,13 @@
 class AgentService
   include Singleton
 
-  attr_accessor :is_summoning, :current_shame_message, :current_summon_message
+  attr_accessor :is_summoning, :current_shame_message, :current_summon_message, :current_anger
 
   def initialize
     @is_summoning = false
     @current_shame_message = "I am ignoring my bath to play on my phone. #IntentlessBath"
     @current_summon_message = "It is time. The water calls."
+    @current_anger = 0.0 # New
     @check_interval = 60 # seconds
     @thread = nil
   end
@@ -69,6 +70,7 @@ class AgentService
 
     # Calculate Emotional State
     emotions = UtilityCalculator.calculate(context)
+    @current_anger = emotions[:anger] # Store it
     
     puts "[Agent] Tick #{hour}:00 | Anger: #{emotions[:anger].round(2)}, Urgency: #{emotions[:urgency].round(2)}, Mercy: #{emotions[:mercy].round(2)}"
 
