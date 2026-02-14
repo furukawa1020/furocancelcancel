@@ -8,11 +8,11 @@ class DialogueGenerator
   }
 
   OBSERVATIONS = {
-    time_late: ["It's #{hour}:00.", "The time is #{hour}:00.", "It is now #{hour} o'clock."],
-    time_critical: ["It's past #{hour}:00.", "It's almost midnight.", "The day is ending."],
-    cold: ["It's #{temp}°C outside.", "It's freezing (#{temp}°C).", "The temperature is #{temp} degrees."],
-    hot: ["It's #{temp}°C.", "It's sweltering outside.", "The heat is #{temp} degrees."],
-    streak: ["You have a #{streak}-day streak.", "#{streak} consecutive days.", "#{streak} days in a row."]
+    time_late: ->(c) { ["It's #{c[:hour]}:00.", "The time is #{c[:hour]}:00.", "It is now #{c[:hour]} o'clock."].sample },
+    time_critical: ->(c) { ["It's past #{c[:hour]}:00.", "It's almost midnight.", "The day is ending."].sample },
+    cold: ->(c) { ["It's #{c[:temp]}°C outside.", "It's freezing (#{c[:temp]}°C).", "The temperature is #{c[:temp]} degrees."].sample },
+    hot: ->(c) { ["It's #{c[:temp]}°C.", "It's sweltering outside.", "The heat is #{c[:temp]} degrees."].sample },
+    streak: ->(c) { ["You have a #{c[:streak]}-day streak.", "#{c[:streak]} consecutive days.", "#{c[:streak]} days in a row."].sample }
   }
 
   COMMANDS = {
@@ -80,23 +80,23 @@ class DialogueGenerator
     
     # Time observation
     if context[:hour] >= 23
-      obs << OBSERVATIONS[:time_critical].sample
+      obs << OBSERVATIONS[:time_critical].call(context)
     elsif context[:hour] >= 20
-      obs << OBSERVATIONS[:time_late].sample
+      obs << OBSERVATIONS[:time_late].call(context)
     end
 
     # Weather
     if context[:temp]
       if context[:temp] < 10
-        obs << OBSERVATIONS[:cold].sample
+        obs << OBSERVATIONS[:cold].call(context)
       elsif context[:temp] > 30
-        obs << OBSERVATIONS[:hot].sample
+        obs << OBSERVATIONS[:hot].call(context)
       end
     end
 
     # Streak (only if significant)
     if context[:streak] && context[:streak] >= 3 && emotions[:disappointment] > 0.5
-      obs << OBSERVATIONS[:streak].sample
+      obs << OBSERVATIONS[:streak].call(context)
     end
 
     obs.join(" ")
