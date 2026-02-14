@@ -1,10 +1,11 @@
 class AgentService
   include Singleton
 
-  attr_accessor :is_summoning
+  attr_accessor :is_summoning, :current_shame_message
 
   def initialize
     @is_summoning = false
+    @current_shame_message = "I am ignoring my bath to play on my phone. #IntentlessBath"
     @check_interval = 60 # seconds
     @thread = nil
   end
@@ -83,6 +84,15 @@ class AgentService
     if should_summon
       puts "[Agent] DECISION: SUMMON USER NOW."
       @is_summoning = true
+      
+      # Generate Dynamic Shame
+      if temp && temp < 10
+        @current_shame_message = "It is freezing (#{temp}C) and I refuse to warm up. I choose to suffer. #IntentlessBath"
+      elsif hour >= 23
+        @current_shame_message = "It is past 11PM and I am doomscrolling instead of bathing. Help me. #IntentlessBath"
+      else
+        @current_shame_message = "I am ignoring the Tyrant. My hygiene is optional. #IntentlessBath"
+      end
     end
   rescue => e
     puts "[Agent] Error in tick: #{e.message}"

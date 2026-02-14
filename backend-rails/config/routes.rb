@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get '/up', to: proc { [200, {}, ['OK']] }
   resources :bandit_stats
   resources :sessions do
     member do
