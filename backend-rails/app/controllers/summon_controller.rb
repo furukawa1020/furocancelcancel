@@ -7,7 +7,8 @@ class SummonController < ApplicationController
   def status
     render json: { 
       isSummoning: AgentService.instance.is_summoning,
-      shameMessage: AgentService.instance.current_shame_message
+      shameMessage: AgentService.instance.current_shame_message,
+      summonMessage: AgentService.instance.current_summon_message
     }
   end
 

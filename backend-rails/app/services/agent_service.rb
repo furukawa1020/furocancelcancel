@@ -1,11 +1,12 @@
 class AgentService
   include Singleton
 
-  attr_accessor :is_summoning, :current_shame_message
+  attr_accessor :is_summoning, :current_shame_message, :current_summon_message
 
   def initialize
     @is_summoning = false
     @current_shame_message = "I am ignoring my bath to play on my phone. #IntentlessBath"
+    @current_summon_message = "It is time. The water calls."
     @check_interval = 60 # seconds
     @thread = nil
   end
@@ -82,10 +83,11 @@ class AgentService
       @is_summoning = true
       
       # Generate AI Messages
-      summon_message = DialogueGenerator.generate(emotions, context)
+      # Generate AI Messages
+      @current_summon_message = DialogueGenerator.generate(emotions, context)
       @current_shame_message = DialogueGenerator.generate_shame(emotions, context)
       
-      puts "[Agent] Message: \"#{summon_message}\""
+      puts "[Agent] Message: \"#{@current_summon_message}\""
       
       # Store for API (we could add a field for this)
       # For now, shame_message is what mobile polls
