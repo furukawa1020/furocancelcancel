@@ -40,6 +40,7 @@ export default function HomeScreen() {
     const [deviceId, setDeviceId] = useState<string | null>(null);
     const [aiReason, setAiReason] = useState<string | null>(null); // Added
     const [shameTimer, setShameTimer] = useState(30); // 30 seconds to comply
+    const [shameMessage, setShameMessage] = useState("I am ignoring my bath to play on my phone. #IntentlessBath");
 
     useEffect(() => {
         // Init Identity
@@ -113,7 +114,10 @@ export default function HomeScreen() {
                 if (res.data.isSummoning) {
                     console.log("THE TYRANT IS HERE.");
                     setViewState('summoned');
-                    setShameTimer(30); // START COUNTDOWN
+                    if (res.data.shameMessage) {
+                        setShameMessage(res.data.shameMessage);
+                    }
+                    if (shameTimer <= 0) setShameTimer(30); // Reset only if ended
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                     playHotaru(); // ALARM SOUND
                 }
@@ -306,7 +310,7 @@ export default function HomeScreen() {
             return () => clearInterval(interval);
         } else if (viewState === 'summoned' && shameTimer === 0) {
             // EXECUTE SOCIAL SANCTION
-            const text = encodeURIComponent("I am ignoring my bath to play on my phone. Someone scold me. #IntentlessBath");
+            const text = encodeURIComponent(shameMessage);
             Linking.openURL(`https://twitter.com/intent/tweet?text=${text}`);
             setShameTimer(10); // Loop the shame every 10s until they comply
         }
