@@ -17,7 +17,9 @@ export const useNativeAudio = () => {
                     allowsRecordingIOS: false,
                     staysActiveInBackground: true,
                     playsInSilentModeIOS: true,
-                    shouldDuckAndroid: true,
+                    shouldDuckAndroid: true, // Lower other apps
+                    interruptionModeIOS: Audio.InterruptionModeIOS.DuckOthers,
+                    interruptionModeAndroid: Audio.InterruptionModeAndroid.DuckOthers,
                     playThroughEarpieceAndroid: false,
                 });
 

@@ -16,15 +16,15 @@ class DialogueGenerator
   }
 
   COMMANDS = {
-    soft: ["Please consider taking your bath.", "It might be time.", "You should go."],
-    firm: ["Get in the bath.", "Take your bath now.", "Go to the bathroom."],
-    harsh: ["GET. IN. THE. BATH.", "MOVE. NOW.", "GO. IMMEDIATELY."]
+    soft: ["Please consider taking your bath.", "It might be time.", "You should go.", "I am waiting for you."],
+    firm: ["Get in the bath.", "Take your bath now.", "Go to the bathroom.", "Do not make me wait."],
+    harsh: ["GET. IN. THE. BATH.", "MOVE. NOW.", "GO. IMMEDIATELY.", "I AM WATCHING YOU."]
   }
 
   THREATS = {
     none: ["", "Thank you.", "I appreciate it."],
-    mild: ["Or I'll keep reminding you.", "I won't stop.", "This will continue."],
-    nuclear: ["Or I'm tweeting this.", "Or the world finds out.", "Or I execute the Social Guillotine."]
+    mild: ["Or I'll keep reminding you.", "I won't stop.", "This will continue.", "I never sleep."],
+    nuclear: ["Or I'm tweeting this.", "Or the world finds out.", "Or I execute the Social Guillotine.", "There is no escape."]
   }
 
   def self.generate(emotions, context)
