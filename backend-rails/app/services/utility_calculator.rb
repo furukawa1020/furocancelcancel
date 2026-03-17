@@ -8,7 +8,7 @@ class UtilityCalculator
     last_bath_hours_ago = context[:last_bath_hours_ago] || 999
 
     # 1. Urgency (Time-based exponential)
-    urgency = calculate_urgency(hour)
+    urgency = calculate_urgency(hour, start_hour: context[:start_hour], curfew_hour: context[:curfew_hour])
 
     # 2. Disappointment (Streak-based)
     disappointment = calculate_disappointment(streak, last_bath_hours_ago)
@@ -29,16 +29,23 @@ class UtilityCalculator
 
   private
 
-  def self.calculate_urgency(hour)
-    # Before 18:00 -> 0
-    # 18:00-22:00 -> Linear 0 to 0.5
-    # 22:00-24:00 -> Exponential 0.5 to 1.0
-    return 0.0 if hour < 18
-    return ((hour - 18) / 4.0) * 0.5 if hour < 22
+  def self.calculate_urgency(hour, start_hour: 18, curfew_hour: 23)
+    # Use user-defined start_hour and curfew_hour
+    start_hour ||= 18
+    curfew_hour ||= 23
+
+    return 0.0 if hour < start_hour
     
-    # Exponential after 22:00
-    excess = hour - 22
-    0.5 + (excess / 2.0) ** 1.5 * 0.5
+    if hour < curfew_hour
+      # Linear increase from start to curfew (up to 0.7)
+      range = curfew_hour - start_hour
+      progress = (hour - start_hour).to_f / range
+      progress * 0.7
+    else
+      # Exponential after curfew (0.7 to 1.0)
+      excess = hour - curfew_hour
+      0.7 + (excess / 2.0) ** 1.5 * 0.3
+    end
   end
 
   def self.calculate_disappointment(streak, hours_ago)

@@ -46,6 +46,6 @@ class UsersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def user_params
-      params.require(:user).permit(:device_id, :current_tier, :has_sessions)
+      params.require(:user).permit(:device_id, :current_tier, :has_sessions, :start_hour, :curfew_hour)
     end
 end

@@ -65,7 +65,9 @@ class AgentService
       hour: hour,
       temp: temp,
       streak: streak,
-      last_bath_hours_ago: last_bath_hours_ago
+      last_bath_hours_ago: last_bath_hours_ago,
+      start_hour: user&.start_hour,
+      curfew_hour: user&.curfew_hour
     }
 
     # Calculate Emotional State
@@ -78,7 +80,9 @@ class AgentService
     # Use Anger as threshold (with randomness for unpredictability)
     roll = rand
     threshold = emotions[:anger] * 0.9 # Slightly reduce to avoid constant summoning
-    should_summon = roll < threshold && hour >= 18
+    
+    active_start = user&.start_hour || 18
+    should_summon = roll < threshold && hour >= active_start
 
     if should_summon
       puts "[Agent] DECISION: SUMMON USER. (Roll: #{roll.round(2)} < Threshold: #{threshold.round(2)})"

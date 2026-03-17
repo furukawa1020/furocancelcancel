@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_14_001632) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_17_021609) do
   create_table "bandit_stats", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "context"
@@ -55,6 +55,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_14_001632) do
     t.boolean "has_sessions"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "start_hour"
+    t.integer "curfew_hour"
     t.index ["device_id"], name: "index_users_on_device_id"
   end
 
